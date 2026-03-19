@@ -432,54 +432,105 @@
     /* 移动端横屏适配 */
     @media (max-width: 860px) and (orientation: landscape) {
       .page {
-        padding: clamp(1rem, 3vw, 2rem);
+        padding: 0.8rem 1.2rem;
       }
 
       .topbar {
-        margin-bottom: clamp(1rem, 3vw, 2rem);
+        margin-bottom: 0.6rem;
       }
 
       .title {
-        font-size: clamp(1.2rem, 2vw, 1.8rem);
+        font-size: 1.1rem;
       }
 
       .subtitle {
-        font-size: 0.75rem;
-        margin-top: 0.4rem;
+        font-size: 0.65rem;
+        margin-top: 0.2rem;
       }
 
       .timeline-viewport {
-        height: 75vh;
+        height: 82vh;
+        border-radius: 1rem;
+      }
+
+      .timeline-track {
+        gap: 1rem;
+        padding: 0.5rem 8vw 0.5rem 4vw;
       }
 
       .project-card {
-        flex: 0 0 clamp(220px, 32vw, 300px);
-        height: clamp(280px, 62vh, 380px);
-        padding: 1rem;
+        flex: 0 0 180px;
+        height: 240px;
+        padding: 0.7rem;
+        border-radius: 1rem;
       }
 
       .project-thumb {
-        height: 55%;
-        margin-bottom: 0.8rem;
+        height: 52%;
+        margin-bottom: 0.5rem;
+        border-radius: 0.7rem;
       }
 
       .project-year {
-        font-size: 0.7rem;
-        margin-bottom: 0.4rem;
+        font-size: 0.6rem;
+        margin-bottom: 0.25rem;
       }
 
       .project-title {
-        font-size: clamp(0.9rem, 1.4vw, 1.1rem);
-        margin-bottom: 0.4rem;
+        font-size: 0.82rem;
+        margin-bottom: 0.3rem;
       }
 
       .project-desc {
-        font-size: 0.8rem;
-        line-height: 1.5;
+        font-size: 0.7rem;
+        line-height: 1.4;
+        -webkit-line-clamp: 2;
       }
 
       .hint {
         display: none;
+      }
+    }
+
+    /* 小屏手机横屏（高度很矮） */
+    @media (max-height: 420px) and (orientation: landscape) {
+      .page {
+        padding: 0.5rem 1rem;
+      }
+
+      .topbar {
+        margin-bottom: 0.4rem;
+      }
+
+      .title {
+        font-size: 1rem;
+      }
+
+      .subtitle {
+        display: none;
+      }
+
+      .timeline-viewport {
+        height: 88vh;
+      }
+
+      .project-card {
+        flex: 0 0 160px;
+        height: 210px;
+        padding: 0.6rem;
+      }
+
+      .project-thumb {
+        height: 48%;
+        margin-bottom: 0.4rem;
+      }
+
+      .project-title {
+        font-size: 0.78rem;
+      }
+
+      .project-desc {
+        -webkit-line-clamp: 1;
       }
     }
 
@@ -598,15 +649,17 @@
       const segment = 0.9;
       const timelineDuration = (cards.length - 1) * segment + segment * 2;
 
+      const hasTouchScreen = "ontouchstart" in window;
       scrollTween = gsap.timeline({
         scrollTrigger: {
           trigger: viewport,
           start: "top top",
           end: () => "+=" + totalScroll,
-          scrub: 1,
+          scrub: hasTouchScreen ? 0.6 : 1,
           pin: true,
           anticipatePin: 1,
-          invalidateOnRefresh: true
+          invalidateOnRefresh: true,
+          normalizeScroll: hasTouchScreen ? { allowNestedScroll: true, type: "touch" } : false
         }
       });
 
@@ -952,6 +1005,60 @@
       layoutCards();
       ScrollTrigger.refresh();
     });
+
+    // ── 移动端触摸：左右滑动驱动时间线 ──
+    (function initTouchSwipe() {
+      if (!("ontouchstart" in window)) return;
+
+      let touchStartX = 0, touchStartY = 0, locked = null;
+      let velocity = 0, rafTick = null, lastMoveTime = 0;
+
+      viewport.addEventListener("touchstart", e => {
+        if (activeCard) return;
+        const t = e.touches[0];
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        locked = null;
+        velocity = 0;
+        if (rafTick) { cancelAnimationFrame(rafTick); rafTick = null; }
+      }, { passive: true });
+
+      viewport.addEventListener("touchmove", e => {
+        if (activeCard) return;
+        const t = e.touches[0];
+        const dx = t.clientX - touchStartX;
+        const dy = t.clientY - touchStartY;
+
+        if (locked === null) {
+          if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+          locked = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
+        }
+        if (locked !== "h") return;
+
+        e.preventDefault();
+        const now = Date.now();
+        const delta = -(t.clientX - touchStartX);
+        velocity = delta / Math.max(now - lastMoveTime, 8);
+        lastMoveTime = now;
+
+        window.scrollBy(0, delta * 2.5);
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+      }, { passive: false });
+
+      // 惯性滑动
+      viewport.addEventListener("touchend", () => {
+        if (locked !== "h") return;
+        let v = velocity * 12;
+        function inertia() {
+          if (Math.abs(v) < 0.3) return;
+          window.scrollBy(0, v);
+          v *= 0.92;
+          rafTick = requestAnimationFrame(inertia);
+        }
+        rafTick = requestAnimationFrame(inertia);
+      }, { passive: true });
+    })();
 
     layoutCards();
     buildScroll();
