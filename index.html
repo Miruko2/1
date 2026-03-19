@@ -833,10 +833,6 @@
       // 移动端：聚焦卡片保持原始尺寸，不放大
       let focusW = rect.width;
       let focusH = rect.height;
-      if (isMobile && !hasTwoPanel) {
-        focusW = Math.min(window.innerWidth * 0.52, 340);
-        focusH = Math.min(window.innerHeight * 0.88, 420);
-      }
 
       // 有 content 时左移，否则居中；移动端整体左移，保持左右卡片原本间距
       const mobileLeftOffset = isMobile && hasTwoPanel ? window.innerWidth * 0.06 : 0;
