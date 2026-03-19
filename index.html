@@ -951,13 +951,16 @@
         // 初始渲染
         requestAnimationFrame(updateBlur);
 
-        // 右侧面板紧跟左侧卡片，保持原本间距，整体一起左移
+        // 右侧面板紧跟左侧卡片，保持原本间距，整体一起左移，移动端宽度加大
         const panelLeft = window.innerWidth * 0.5 + gap * 0.5 - mobileLeftOffset;
+        const panelWidth = isMobile
+          ? Math.min(window.innerWidth - panelLeft - 8, focusW * 1.4)
+          : rect.width;
 
         gsap.set(panel, {
           left: panelLeft,
           top: centerY - focusH * 0.5,
-          width: isMobile ? focusW : rect.width,
+          width: panelWidth,
           height: focusH,
           scale: 0.82,
           opacity: 0,
