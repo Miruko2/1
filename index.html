@@ -838,8 +838,8 @@
         focusH = Math.min(window.innerHeight * 0.88, 420);
       }
 
-      // 有 content 时左移，否则居中；移动端左移更多避免被右侧面板遮挡
-      const mobileLeftOffset = isMobile && hasTwoPanel ? window.innerWidth * 0.08 : 0;
+      // 有 content 时左移，否则居中；移动端整体左移，保持左右卡片原本间距
+      const mobileLeftOffset = isMobile && hasTwoPanel ? window.innerWidth * 0.06 : 0;
       const targetCenterX = hasTwoPanel
         ? window.innerWidth * 0.5 - focusW * 0.5 - gap * 0.5 - mobileLeftOffset
         : window.innerWidth * 0.5;
@@ -951,16 +951,13 @@
         // 初始渲染
         requestAnimationFrame(updateBlur);
 
-        // 移动端右侧面板宽度：填满左侧卡片右边的剩余空间
-        const panelLeft = window.innerWidth * 0.5 + gap * 0.5;
-        const panelWidth = isMobile
-          ? window.innerWidth - panelLeft - gap
-          : rect.width;
+        // 右侧面板紧跟左侧卡片，保持原本间距，整体一起左移
+        const panelLeft = window.innerWidth * 0.5 + gap * 0.5 - mobileLeftOffset;
 
         gsap.set(panel, {
           left: panelLeft,
           top: centerY - focusH * 0.5,
-          width: panelWidth,
+          width: isMobile ? focusW : rect.width,
           height: focusH,
           scale: 0.82,
           opacity: 0,
