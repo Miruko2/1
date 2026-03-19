@@ -255,7 +255,7 @@ hanako在这里哦…
     title: "Pulse Analytics",
     desc:  "把复杂数据转译为动态叙事，支持决策场景中的极速理解与对比。",
     depth: 0.85,
-    image: ""
+    image: "img/loli.jpg",
   },
   {
     year:  "2024",
@@ -263,7 +263,7 @@ hanako在这里哦…
     title: "Luma Story Engine",
     desc:  "可编排的视觉叙事引擎，让品牌故事以电影化时间线展开。",
     depth: 1.05,
-    image: ""
+    image: "img/pink_girl2.jpg"
   },
   {
     year:  "2024",
@@ -271,7 +271,7 @@ hanako在这里哦…
     title: "Astra Fleet Console",
     desc:  "面向大规模设备协同的运维中枢，以低认知负担实现高密度信息管理。",
     depth: 1.25,
-    image: ""
+    image: "img/pink_girl.jpg"
   },
   {
     year:  "2023",

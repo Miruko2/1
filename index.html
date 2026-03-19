@@ -830,17 +830,18 @@
       const isMobile = "ontouchstart" in window && window.innerWidth <= 860;
       const gap = isMobile ? 12 : 28;
 
-      // 移动端：聚焦卡片加宽，占满大部分屏幕
+      // 移动端：聚焦卡片保持原始尺寸，不放大
       let focusW = rect.width;
       let focusH = rect.height;
-      if (isMobile) {
-        focusW = Math.min(window.innerWidth * 0.6, 340);
+      if (isMobile && !hasTwoPanel) {
+        focusW = Math.min(window.innerWidth * 0.52, 340);
         focusH = Math.min(window.innerHeight * 0.88, 420);
       }
 
-      // 有 content 时左移，否则居中；移动端也左移但间距更小
+      // 有 content 时左移，否则居中；移动端整体左移，保持左右卡片原本间距
+      const mobileLeftOffset = isMobile && hasTwoPanel ? window.innerWidth * 0.06 : 0;
       const targetCenterX = hasTwoPanel
-        ? window.innerWidth * 0.5 - focusW * 0.5 - gap * 0.5
+        ? window.innerWidth * 0.5 - focusW * 0.5 - gap * 0.5 - mobileLeftOffset
         : window.innerWidth * 0.5;
       const offsetX = targetCenterX - cardCenterX;
       const offsetY = centerY - cardCenterY;
@@ -950,10 +951,16 @@
         // 初始渲染
         requestAnimationFrame(updateBlur);
 
+        // 右侧面板紧跟左侧卡片，保持原本间距，整体一起左移，移动端宽度加大
+        const panelLeft = window.innerWidth * 0.5 + gap * 0.5 - mobileLeftOffset;
+        const panelWidth = isMobile
+          ? Math.min(window.innerWidth - panelLeft - 8, focusW * 1.4)
+          : rect.width;
+
         gsap.set(panel, {
-          left: window.innerWidth * 0.5 + gap * 0.5,
+          left: panelLeft,
           top: centerY - focusH * 0.5,
-          width: isMobile ? focusW : rect.width,
+          width: panelWidth,
           height: focusH,
           scale: 0.82,
           opacity: 0,
