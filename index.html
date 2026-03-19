@@ -1079,6 +1079,12 @@
     })();
 
     layoutCards();
+    // 预设非首张卡片的初始状态，避免页面加载时闪烁
+    cards.forEach((card, i) => {
+      if (i > 0) {
+        gsap.set(card, { opacity: 0.12, scale: 0.92, x: 90, filter: "blur(8px)" });
+      }
+    });
     buildScroll();
     renderParallax();
   </script>
