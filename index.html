@@ -827,16 +827,25 @@
 
       const proj = PROJECTS[parseInt(card.dataset.index)];
       const hasTwoPanel = !!(proj && proj.content);
-      const gap = 28;
+      const isMobile = "ontouchstart" in window && window.innerWidth <= 860;
+      const gap = isMobile ? 12 : 28;
 
-      // 有 content 时左移，否则居中
+      // 移动端：聚焦卡片加宽，占满大部分屏幕
+      let focusW = rect.width;
+      let focusH = rect.height;
+      if (isMobile) {
+        focusW = Math.min(window.innerWidth * 0.6, 340);
+        focusH = Math.min(window.innerHeight * 0.88, 420);
+      }
+
+      // 有 content 时左移，否则居中；移动端也左移但间距更小
       const targetCenterX = hasTwoPanel
-        ? window.innerWidth * 0.5 - rect.width * 0.5 - gap * 0.5
+        ? window.innerWidth * 0.5 - focusW * 0.5 - gap * 0.5
         : window.innerWidth * 0.5;
       const offsetX = targetCenterX - cardCenterX;
       const offsetY = centerY - cardCenterY;
-      const auraWidth = rect.width * 1.36;
-      const auraHeight = rect.height * 1.42;
+      const auraWidth = focusW * 1.36;
+      const auraHeight = focusH * 1.42;
 
       const focusCardEl = card.cloneNode(true);
       focusCardEl.classList.remove("is-active");
@@ -883,7 +892,9 @@
       gsap.to(focusCardEl, {
         x: offsetX,
         y: offsetY,
-        scale: hasTwoPanel ? 1 : 1.15,
+        width: focusW,
+        height: focusH,
+        scale: hasTwoPanel ? 1 : (isMobile ? 1 : 1.15),
         filter: "blur(0px)",
         duration: 0.8,
         ease: "expo.out"
@@ -941,9 +952,9 @@
 
         gsap.set(panel, {
           left: window.innerWidth * 0.5 + gap * 0.5,
-          top: centerY - rect.height * 0.5,
-          width: rect.width,
-          height: rect.height,
+          top: centerY - focusH * 0.5,
+          width: isMobile ? focusW : rect.width,
+          height: focusH,
           scale: 0.82,
           opacity: 0,
           y: 32,
