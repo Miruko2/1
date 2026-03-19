@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>HANAKO</title>
+  <style>
+    :root {
+      --bg-0: #fffafb;
+      --bg-1: #fff4f7;
+      --bg-2: #ffeef4;
+      --text: rgba(52, 48, 51, 0.92);
+      --muted: rgba(92, 86, 90, 0.7);
+      --glass: rgba(255, 255, 255, 0.68);
+      --glass-border: rgba(255, 255, 255, 0.92);
+      --glow: rgba(244, 166, 198, 0.42);
+      --overlay: rgba(255, 246, 249, 0.56);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: radial-gradient(120% 120% at 10% 10%, #ffe7f1 0%, transparent 38%),
+                  radial-gradient(100% 100% at 90% 80%, #ffe1ec 0%, transparent 44%),
+                  linear-gradient(135deg, var(--bg-0) 0%, var(--bg-1) 40%, var(--bg-2) 100%);
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.12;
+      z-index: 0;
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(219, 169, 189, 0.25) 0 0.7px, transparent 1px),
+        radial-gradient(circle at 80% 70%, rgba(219, 169, 189, 0.2) 0 0.7px, transparent 1px);
+      background-size: 3px 3px, 4px 4px;
+      mix-blend-mode: soft-light;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      padding: clamp(2rem, 4vw, 3.5rem);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 2rem;
+      margin-bottom: clamp(2rem, 5vw, 4rem);
+    }
+
+    .title {
+      font-size: clamp(1.6rem, 2.6vw, 2.6rem);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+      text-wrap: balance;
+    }
+
+    .subtitle {
+      margin-top: 0.7rem;
+      color: var(--muted);
+      font-size: clamp(0.9rem, 1.2vw, 1rem);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hint {
+      color: rgba(110, 101, 107, 0.72);
+      font-size: 0.84rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      opacity: 0.9;
+    }
+
+    .timeline-viewport {
+      position: relative;
+      width: 100%;
+      height: min(72vh, 640px);
+      overflow: hidden;
+      border-radius: 2rem;
+    }
+
+    .timeline-track {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translate3d(0, -50%, 0);
+      display: flex;
+      align-items: center;
+      gap: clamp(1.2rem, 2.2vw, 2.6rem);
+      will-change: transform;
+      padding: 1rem 14vw 1rem 6vw;
+    }
+
+    .project-card {
+      position: relative;
+      flex: 0 0 clamp(260px, 28vw, 390px);
+      height: clamp(340px, 56vh, 500px);
+      border-radius: 1.3rem;
+      padding: 1.2rem 1.25rem 1.3rem;
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.76), rgba(255, 238, 244, 0.62));
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 18px 48px rgba(194, 145, 166, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      transform-origin: center center;
+      will-change: transform, opacity, filter;
+      overflow: hidden;
+      cursor: pointer;
+      isolation: isolate;
+    }
+
+    .project-card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      background: radial-gradient(220px 220px at 50% 20%, rgba(255, 184, 212, 0.56), transparent 65%);
+      transition: opacity 0.45s ease;
+    }
+
+    .project-card:hover::before {
+      opacity: 0.75;
+    }
+
+    .project-card:hover {
+      box-shadow: 0 24px 62px rgba(188, 132, 156, 0.24), 0 0 32px var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    }
+
+    .project-thumb {
+      position: relative;
+      width: 100%;
+      height: 58%;
+      border-radius: 1rem;
+      overflow: hidden;
+      margin-bottom: 1.1rem;
+      background: linear-gradient(135deg, rgba(255, 206, 222, 0.68), rgba(255, 237, 244, 0.42));
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .project-thumb::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 40%, rgba(188, 136, 158, 0.28) 100%);
+    }
+
+    .project-thumb .noise {
+      position: absolute;
+      inset: 0;
+      opacity: 0.2;
+      mix-blend-mode: soft-light;
+      background-image:
+        radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.28) 0 1px, transparent 1.2px),
+        radial-gradient(circle at 75% 70%, rgba(255, 255, 255, 0.2) 0 1px, transparent 1.2px);
+      background-size: 5px 5px, 4px 4px;
+    }
+
+    .project-meta {
+      position: relative;
+      z-index: 1;
+    }
+
+    .project-year {
+      color: rgba(108, 99, 105, 0.7);
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      margin-bottom: 0.55rem;
+    }
+
+    .project-title {
+      font-size: clamp(1.02rem, 1.6vw, 1.28rem);
+      font-weight: 600;
+      margin-bottom: 0.55rem;
+      letter-spacing: 0.02em;
+    }
+
+    .project-desc {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: rgba(78, 72, 76, 0.84);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ── 打开状态：meta 区可滚动，文字渐显 ── */
+    .focus-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .focus-card .project-thumb {
+      flex-shrink: 0;
+    }
+
+    .focus-card .project-meta {
+      flex: 1 1 0;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      mask-image: linear-gradient(to bottom, transparent, black 10%, black 74%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 74%, transparent 100%);
+    }
+
+    .focus-card .project-meta::-webkit-scrollbar {
+      display: none;
+    }
+
+    .focus-card .project-desc {
+      display: block;
+      overflow: visible;
+      white-space: pre-wrap;
+    }
+
+    /* content 富文本排版 */
+    .focus-card .project-desc h3,
+    .focus-card .project-desc h4 {
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      margin: 0.9rem 0 0.3rem;
+      color: rgba(60, 52, 58, 0.9);
+    }
+    .focus-card .project-desc p {
+      margin: 0.3rem 0 0.5rem;
+    }
+    .focus-card .project-desc ul,
+    .focus-card .project-desc ol {
+      padding-left: 1.1rem;
+      margin: 0.3rem 0 0.5rem;
+    }
+    .focus-card .project-desc li {
+      margin-bottom: 0.25rem;
+    }
+    .focus-card .project-desc hr {
+      border: none;
+      border-top: 1px solid rgba(194, 145, 166, 0.3);
+      margin: 0.8rem 0;
+    }
+    .focus-card .project-desc strong { font-weight: 600; }
+    .focus-card .project-desc em     { font-style: italic; opacity: 0.85; }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--overlay);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 80;
+    }
+
+    .focus-aura {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 360px;
+      height: 460px;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+      border-radius: 2rem;
+      transform: translate3d(-50%, -50%, 0) scale(0.9);
+      background:
+        radial-gradient(45% 55% at 50% 40%, rgba(255, 255, 255, 0.72), transparent 70%),
+        radial-gradient(70% 75% at 50% 60%, rgba(255, 188, 216, 0.48), rgba(255, 205, 226, 0.06) 72%);
+      filter: blur(28px);
+    }
+
+    .project-card.is-active:not(.focus-card) {
+      z-index: 110;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .focus-card {
+      position: fixed;
+      margin: 0;
+      z-index: 1200;
+      pointer-events: auto;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(255, 238, 244, 0.92));
+    }
+
+    /* ── 右侧内容面板 ── */
+    .content-panel {
+      position: fixed;
+      z-index: 1200;
+      pointer-events: auto;
+      border-radius: 1.3rem;
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(255, 238, 244, 0.92));
+      border: 1px solid var(--glass-border);
+      box-shadow:
+        0 32px 72px rgba(188, 132, 156, 0.32),
+        0 12px 28px rgba(194, 145, 166, 0.18),
+        0  4px 10px rgba(194, 145, 166, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.88);
+      overflow: hidden;
+    }
+
+    /* 内容面板滚动区 */
+    .content-scroll-wrapper {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 1.4rem 1.5rem;
+      box-sizing: border-box;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: rgba(78, 72, 76, 0.84);
+      white-space: pre-wrap;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .content-scroll-wrapper::-webkit-scrollbar { display: none; }
+
+    /* 每个段落独立过渡，JS 会动态写入 filter + opacity */
+    .content-scroll-wrapper p,
+    .content-scroll-wrapper h3,
+    .content-scroll-wrapper h4,
+    .content-scroll-wrapper ul,
+    .content-scroll-wrapper ol,
+    .content-scroll-wrapper hr {
+      transition: filter 0.12s ease-out, opacity 0.12s ease-out;
+    }
+
+    .content-panel h3,
+    .content-panel h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      margin: 0.9rem 0 0.3rem;
+      color: rgba(60, 52, 58, 0.9);
+      white-space: normal;
+    }
+    .content-panel p  { margin: 0.3rem 0 0.5rem; white-space: pre-wrap; }
+    .content-panel ul,
+    .content-panel ol { padding-left: 1.1rem; margin: 0.3rem 0 0.5rem; white-space: normal; }
+    .content-panel li { margin-bottom: 0.25rem; }
+    .content-panel hr { border: none; border-top: 1px solid rgba(194,145,166,0.3); margin: 0.8rem 0; }
+    .content-panel strong { font-weight: 600; }
+    .content-panel em    { font-style: italic; opacity: 0.85; }
+    .content-panel strong { font-weight: 600; }
+    .content-panel em    { font-style: italic; opacity: 0.85; }
+
+    /* 横屏旋转提示 */
+    .rotate-prompt {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, var(--bg-0) 0%, var(--bg-1) 40%, var(--bg-2) 100%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .rotate-icon {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 1.5rem;
+      animation: rotateDevice 2s ease-in-out infinite;
+    }
+
+    .rotate-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: var(--text);
+      opacity: 0.8;
+    }
+
+    @keyframes rotateDevice {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(90deg); }
+    }
+
+    .rotate-prompt h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.8rem;
+      color: var(--text);
+    }
+
+    .rotate-prompt p {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 300px;
+    }
+
+    /* 移动端竖屏时显示旋转提示 */
+    @media (max-width: 860px) and (orientation: portrait) {
+      .rotate-prompt {
+        display: flex;
+      }
+
+      .page {
+        display: none;
+      }
+    }
+
+    /* 移动端横屏适配 */
+    @media (max-width: 860px) and (orientation: landscape) {
+      .page {
+        padding: clamp(1rem, 3vw, 2rem);
+      }
+
+      .topbar {
+        margin-bottom: clamp(1rem, 3vw, 2rem);
+      }
+
+      .title {
+        font-size: clamp(1.2rem, 2vw, 1.8rem);
+      }
+
+      .subtitle {
+        font-size: 0.75rem;
+        margin-top: 0.4rem;
+      }
+
+      .timeline-viewport {
+        height: 75vh;
+      }
+
+      .project-card {
+        flex: 0 0 clamp(220px, 32vw, 300px);
+        height: clamp(280px, 62vh, 380px);
+        padding: 1rem;
+      }
+
+      .project-thumb {
+        height: 55%;
+        margin-bottom: 0.8rem;
+      }
+
+      .project-year {
+        font-size: 0.7rem;
+        margin-bottom: 0.4rem;
+      }
+
+      .project-title {
+        font-size: clamp(0.9rem, 1.4vw, 1.1rem);
+        margin-bottom: 0.4rem;
+      }
+
+      .project-desc {
+        font-size: 0.8rem;
+        line-height: 1.5;
+      }
+
+      .hint {
+        display: none;
+      }
+    }
+
+    /* 平板和小屏电脑 */
+    @media (max-width: 860px) and (min-width: 861px) {
+      .timeline-viewport {
+        height: 68vh;
+      }
+
+      .hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 旋转提示 -->
+  <div class="rotate-prompt">
+    <div class="rotate-icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36zm-7.31.29C4.25 19.94 1.91 16.76 1.55 13H.05C.56 19.16 5.71 24 12 24l.66-.03-3.81-3.81-1.33 1.32z"/>
+      </svg>
+    </div>
+    <h2>请旋转设备</h2>
+    <p>为了获得最佳体验，请将设备横向放置</p>
+  </div>
+
+  <main class="page">
+    <header class="topbar">
+      <div>
+        <h1 class="title">HANAKO</h1>
+        <p class="subtitle">花子的涩涩日记</p>
+      </div>
+      <p class="hint">Scroll → Explore</p>
+    </header>
+
+    <section class="timeline-viewport" id="timelineViewport">
+      <div class="timeline-track" id="timelineTrack"></div>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay"></div>
+  <div class="focus-aura" id="focusAura"></div>
+
+  <script src="projects.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js"></script>
+  <script>
+
+    // 根据数据渲染卡片到 timeline-track
+    const track = document.getElementById("timelineTrack");
+    PROJECTS.forEach((p, i) => {
+      const thumbInner = p.image
+        ? `<img src="${p.image}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;">`
+        : `<div class="noise"></div>`;
+      track.insertAdjacentHTML("beforeend", `
+        <article class="project-card" data-depth="${p.depth}" data-index="${i}">
+          <div class="project-thumb">${thumbInner}</div>
+          <div class="project-meta">
+            <p class="project-year">${p.year} · ${p.tag}</p>
+            <h2 class="project-title">${p.title}</h2>
+            <p class="project-desc">${p.desc}</p>
+          </div>
+        </article>
+      `);
+    });
+
+
+    const viewport = document.getElementById("timelineViewport");
+    const overlay = document.getElementById("overlay");
+    const focusAura = document.getElementById("focusAura");
+    const cards = gsap.utils.toArray(".project-card");
+
+    let activeCard = null;
+    let activeFocusCard = null;
+    let activeContentPanel = null;
+    let canParallax = true;
+    let pointerX = window.innerWidth * 0.5;
+    let pointerY = window.innerHeight * 0.5;
+    let smoothX = pointerX;
+    let smoothY = pointerY;
+    let scrollTween = null;
+    let activeSnapshot = null;
+
+    const cardStates = cards.map((card, i) => ({
+      card,
+      baseY: i % 2 ? -18 - i * 2 : 14 + i * 2,
+      baseRotate: i % 2 ? 2.2 : -2.2,
+      depth: Number(card.dataset.depth) || 1
+    }));
+    const parallaxSetters = cardStates.map(state => ({
+      x: gsap.quickTo(state.card, "xPercent", { duration: 0.85, ease: "power3.out" }),
+      y: gsap.quickTo(state.card, "yPercent", { duration: 0.85, ease: "power3.out" })
+    }));
+
+    // 初始化卡片轻微错位堆叠，建立层级感
+    function layoutCards() {
+      cardStates.forEach((state, i) => {
+        gsap.set(state.card, {
+          y: state.baseY,
+          rotation: state.baseRotate,
+          zIndex: cards.length - i
+        });
+      });
+    }
+
+    // 通过 ScrollTrigger 将纵向滚动映射为横向时间线移动
+    function buildScroll() {
+      if (scrollTween) {
+        scrollTween.scrollTrigger.kill();
+        scrollTween.kill();
+      }
+
+      const totalMove = Math.max(track.scrollWidth - viewport.clientWidth + window.innerWidth * 0.08, 0);
+      const totalScroll = Math.max(totalMove + window.innerHeight * 0.9, window.innerHeight);
+      const segment = 0.9;
+      const timelineDuration = (cards.length - 1) * segment + segment * 2;
+
+      scrollTween = gsap.timeline({
+        scrollTrigger: {
+          trigger: viewport,
+          start: "top top",
+          end: () => "+=" + totalScroll,
+          scrub: 1,
+          pin: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true
+        }
+      });
+
+      scrollTween.to(track, { x: -totalMove, duration: timelineDuration, ease: "none" }, 0);
+
+      cards.forEach((card, i) => {
+        const enterAt = i * segment;
+        const leaveAt = enterAt + segment;
+
+        scrollTween.fromTo(
+          card,
+          {
+            opacity: i === 0 ? 1 : 0.12,
+            scale: i === 0 ? 1 : 0.92,
+            x: i === 0 ? 0 : 90,
+            filter: i === 0 ? "blur(0px)" : "blur(8px)"
+          },
+          {
+            opacity: 1,
+            scale: 1,
+            x: 0,
+            filter: "blur(0px)",
+            duration: segment,
+            ease: "power3.out",
+            immediateRender: false
+          },
+          enterAt
+        );
+
+        scrollTween.to(
+          card,
+          {
+            opacity: 0.35,
+            scale: 0.93,
+            x: -60,
+            duration: segment,
+            ease: "power4.out"
+          },
+          leaveAt
+        );
+      });
+    }
+
+    function pointerMove(e) {
+      pointerX = e.clientX;
+      pointerY = e.clientY;
+    }
+
+    // 鼠标位置驱动惯性视差，不同深度对应不同位移幅度
+    function renderParallax() {
+      smoothX += (pointerX - smoothX) * 0.08;
+      smoothY += (pointerY - smoothY) * 0.08;
+
+      if (canParallax) {
+        const cx = window.innerWidth * 0.5;
+        const cy = window.innerHeight * 0.5;
+        const nx = (smoothX - cx) / cx;
+        const ny = (smoothY - cy) / cy;
+
+        cardStates.forEach((state, i) => {
+          const driftX = nx * 15 * state.depth;
+          const driftY = ny * 10 * state.depth;
+          parallaxSetters[i].x(driftX);
+          parallaxSetters[i].y(driftY);
+        });
+      }
+
+      requestAnimationFrame(renderParallax);
+    }
+
+    function closeCard() {
+      if (!activeCard || !activeFocusCard) {
+        return;
+      }
+
+      const card = activeCard;
+      const focusCardEl = activeFocusCard;
+      const contentPanel = activeContentPanel;
+      const saved = activeSnapshot;
+      const sourceRect = card.getBoundingClientRect();
+      activeCard = null;
+      activeFocusCard = null;
+      activeContentPanel = null;
+      activeSnapshot = null;
+      canParallax = true;
+      document.body.style.overflow = "";
+
+      gsap.to(overlay, {
+        opacity: 0,
+        duration: 0.45,
+        ease: "power3.out",
+        onComplete: () => {
+          overlay.style.pointerEvents = "none";
+        }
+      });
+
+      gsap.to(focusAura, {
+        opacity: 0,
+        scale: 0.9,
+        duration: 0.45,
+        ease: "power3.out"
+      });
+
+      // 右侧内容面板退出动画
+      if (contentPanel) {
+        gsap.to(contentPanel, {
+          scale: 0.88,
+          opacity: 0,
+          y: "+=24",
+          duration: 0.32,
+          ease: "power3.in",
+          onComplete: () => contentPanel.remove()
+        });
+      }
+
+      gsap.to(focusCardEl, {
+        x: sourceRect.left - (saved ? saved.rectLeft : sourceRect.left),
+        y: sourceRect.top - (saved ? saved.rectTop : sourceRect.top),
+        scale: 1,
+        duration: 0.6,
+        ease: "expo.out",
+        onComplete: () => {
+          focusCardEl.remove();
+          card.classList.remove("is-active");
+          gsap.set(card, {
+            x: saved ? saved.x : 0,
+            y: saved ? saved.y : 0,
+            scale: saved ? saved.scale : 1,
+            rotation: saved ? saved.rotation : 0,
+            xPercent: saved ? saved.xPercent : 0,
+            yPercent: saved ? saved.yPercent : 0,
+            filter: saved ? saved.filter : "blur(0px)"
+          });
+        }
+      });
+    }
+
+    // 点击卡片时聚焦并居中，再次点击或点遮罩关闭
+    function focusCard(card) {
+      if (activeCard === card) {
+        closeCard();
+        return;
+      }
+
+      if (activeCard && activeCard !== card) {
+        closeCard();
+      }
+
+      canParallax = false;
+      activeCard = card;
+      card.classList.add("is-active");
+      document.body.style.overflow = "hidden";
+
+      overlay.style.pointerEvents = "auto";
+      gsap.to(overlay, {
+        opacity: 1,
+        duration: 0.5,
+        ease: "power4.out"
+      });
+
+      const rect = card.getBoundingClientRect();
+      const cardCenterX = rect.left + rect.width * 0.5;
+      const cardCenterY = rect.top + rect.height * 0.5;
+      const centerY = window.innerHeight * 0.5;
+
+      const proj = PROJECTS[parseInt(card.dataset.index)];
+      const hasTwoPanel = !!(proj && proj.content);
+      const gap = 28;
+
+      // 有 content 时左移，否则居中
+      const targetCenterX = hasTwoPanel
+        ? window.innerWidth * 0.5 - rect.width * 0.5 - gap * 0.5
+        : window.innerWidth * 0.5;
+      const offsetX = targetCenterX - cardCenterX;
+      const offsetY = centerY - cardCenterY;
+      const auraWidth = rect.width * 1.36;
+      const auraHeight = rect.height * 1.42;
+
+      const focusCardEl = card.cloneNode(true);
+      focusCardEl.classList.remove("is-active");
+      focusCardEl.classList.add("focus-card");
+      document.body.appendChild(focusCardEl);
+
+      activeFocusCard = focusCardEl;
+      focusCardEl.addEventListener("click", e => {
+        e.stopPropagation();
+        closeCard();
+      });
+
+      gsap.set(focusCardEl, {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+        xPercent: 0,
+        yPercent: 0,
+        opacity: 1,
+        filter: "blur(0px)",
+        zIndex: 1200
+      });
+
+      activeSnapshot = {
+        rectLeft: rect.left,
+        rectTop: rect.top,
+        x: Number(gsap.getProperty(card, "x")) || 0,
+        y: Number(gsap.getProperty(card, "y")) || 0,
+        scale: Number(gsap.getProperty(card, "scale")) || 1,
+        rotation: Number(gsap.getProperty(card, "rotation")) || 0,
+        xPercent: Number(gsap.getProperty(card, "xPercent")) || 0,
+        yPercent: Number(gsap.getProperty(card, "yPercent")) || 0,
+        filter: gsap.getProperty(card, "filter") || "blur(0px)"
+      };
+
+      gsap.set(focusAura, { width: auraWidth, height: auraHeight, x: 0, y: 0 });
+      gsap.to(focusAura, { opacity: 0.92, scale: 1.08, duration: 0.7, ease: "power4.out" });
+
+      gsap.to(focusCardEl, {
+        x: offsetX,
+        y: offsetY,
+        scale: hasTwoPanel ? 1 : 1.15,
+        filter: "blur(0px)",
+        duration: 0.8,
+        ease: "expo.out"
+      });
+
+      // 右侧内容面板
+      if (hasTwoPanel) {
+        const panel = document.createElement("div");
+        panel.className = "content-panel";
+
+        const scrollWrapper = document.createElement("div");
+        scrollWrapper.className = "content-scroll-wrapper";
+
+        // 每行都是独立的 <p>，保证上下边缘总有元素可以模糊
+        scrollWrapper.innerHTML = proj.content
+          .split(/\n/)
+          .filter(s => s.trim())
+          .map(s => /^<[a-z]/i.test(s.trim()) ? s.trim() : `<p>${s.trim()}</p>`)
+          .join("");
+
+        panel.appendChild(scrollWrapper);
+        document.body.appendChild(panel);
+        activeContentPanel = panel;
+
+        // 计算每个块级元素的模糊/透明度
+        const FADE = 70;   // 上下各 90px 的渐变区
+        const MAX_BLUR = 20;
+        function updateBlur() {
+          const wrapRect = scrollWrapper.getBoundingClientRect();
+          const H = wrapRect.height;
+          scrollWrapper.querySelectorAll("p, h3, h4, ul, ol, hr").forEach(el => {
+            const r = el.getBoundingClientRect();
+            const top = r.top - wrapRect.top;
+            const bot = r.bottom - wrapRect.top;
+            let t = 1; // 0=完全模糊, 1=完全清晰
+            if (bot < 0 || top > H) {
+              t = 0;
+            } else if (top > H - FADE) {
+              t = Math.max(0, (H - top) / FADE);
+            } else if (bot < FADE) {
+              t = Math.max(0, bot / FADE);
+            }
+            el.style.filter  = t < 0.99 ? `blur(${(MAX_BLUR * (1 - t)).toFixed(2)}px)` : "";
+            el.style.opacity = t < 0.99 ? (0.15 + 0.85 * t).toFixed(3) : "";
+          });
+        }
+
+        let rafId = null;
+        scrollWrapper.addEventListener("scroll", () => {
+          if (rafId) return;
+          rafId = requestAnimationFrame(() => { updateBlur(); rafId = null; });
+        });
+        // 初始渲染
+        requestAnimationFrame(updateBlur);
+
+        gsap.set(panel, {
+          left: window.innerWidth * 0.5 + gap * 0.5,
+          top: centerY - rect.height * 0.5,
+          width: rect.width,
+          height: rect.height,
+          scale: 0.82,
+          opacity: 0,
+          y: 32,
+          zIndex: 1200
+        });
+
+        gsap.to(panel, {
+          scale: 1,
+          opacity: 1,
+          y: 0,
+          duration: 0.72,
+          delay: 0.18,
+          ease: "back.out(1.9)",
+          onUpdate: updateBlur,
+          onComplete: updateBlur
+        });
+
+        panel.addEventListener("click", e => e.stopPropagation());
+
+        let targetScroll = 0;
+        panel.addEventListener("wheel", e => {
+          e.preventDefault();
+          e.stopPropagation();
+          const maxScroll = scrollWrapper.scrollHeight - scrollWrapper.clientHeight;
+          targetScroll = Math.max(0, Math.min(maxScroll, targetScroll + e.deltaY * 0.3));
+          gsap.to(scrollWrapper, {
+            scrollTop: targetScroll,
+            duration: 0.55,
+            ease: "power3.out",
+            overwrite: "auto",
+            onUpdate: updateBlur
+          });
+        }, { passive: false });
+      } else {
+        // 无 content 时，焦点卡片内部可滚动
+        focusCardEl.addEventListener("wheel", e => {
+          const meta = focusCardEl.querySelector(".project-meta");
+          if (meta) { e.preventDefault(); e.stopPropagation(); meta.scrollTop += e.deltaY; }
+        }, { passive: false });
+      }
+    }
+
+    cards.forEach(card => {
+      card.addEventListener("click", e => {
+        e.stopPropagation();
+        focusCard(card);
+      });
+    });
+
+    overlay.addEventListener("click", closeCard);
+    window.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        closeCard();
+      }
+    });
+
+    window.addEventListener("pointermove", pointerMove, { passive: true });
+    window.addEventListener("resize", () => {
+      layoutCards();
+      ScrollTrigger.refresh();
+    });
+
+    layoutCards();
+    buildScroll();
+    renderParallax();
+  </script>
+</body>
+</html>
