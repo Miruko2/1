@@ -349,7 +349,9 @@
     .content-scroll-wrapper h4,
     .content-scroll-wrapper ul,
     .content-scroll-wrapper ol,
-    .content-scroll-wrapper hr {
+    .content-scroll-wrapper hr,
+    .content-scroll-wrapper img,
+    .content-scroll-wrapper video {
       transition: filter 0.12s ease-out, opacity 0.12s ease-out;
     }
 
@@ -371,6 +373,17 @@
     .content-panel em    { font-style: italic; opacity: 0.85; }
     .content-panel strong { font-weight: 600; }
     .content-panel em    { font-style: italic; opacity: 0.85; }
+
+    /* 内容面板中的图片和视频 */
+    .content-scroll-wrapper img,
+    .content-scroll-wrapper video {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.8rem;
+      margin: 0.6rem 0;
+      object-fit: cover;
+    }
 
     /* 横屏旋转提示 */
     .rotate-prompt {
@@ -765,6 +778,7 @@
 
       // 右侧内容面板退出动画
       if (contentPanel) {
+        contentPanel.querySelectorAll("video").forEach(v => v.pause());
         gsap.to(contentPanel, {
           scale: 0.88,
           opacity: 0,
@@ -922,7 +936,7 @@
         function updateBlur() {
           const wrapRect = scrollWrapper.getBoundingClientRect();
           const H = wrapRect.height;
-          scrollWrapper.querySelectorAll("p, h3, h4, ul, ol, hr").forEach(el => {
+          scrollWrapper.querySelectorAll("p, h3, h4, ul, ol, hr, img, video").forEach(el => {
             const r = el.getBoundingClientRect();
             const top = r.top - wrapRect.top;
             const bot = r.bottom - wrapRect.top;
@@ -939,13 +953,32 @@
           });
         }
 
+        // 视频自动播放/暂停：可见 >30% 时播放，否则暂停
+        function updateVideoPlayback() {
+          scrollWrapper.querySelectorAll("video").forEach(vid => {
+            const wrapRect = scrollWrapper.getBoundingClientRect();
+            const r = vid.getBoundingClientRect();
+            const top = r.top - wrapRect.top;
+            const bot = r.bottom - wrapRect.top;
+            const H = wrapRect.height;
+            const visibleTop = Math.max(top, 0);
+            const visibleBot = Math.min(bot, H);
+            const visibleFraction = bot > top ? (visibleBot - visibleTop) / (bot - top) : 0;
+            if (visibleFraction > 0.3) {
+              if (vid.paused) vid.play().catch(() => {});
+            } else {
+              if (!vid.paused) vid.pause();
+            }
+          });
+        }
+
         let rafId = null;
         scrollWrapper.addEventListener("scroll", () => {
           if (rafId) return;
-          rafId = requestAnimationFrame(() => { updateBlur(); rafId = null; });
+          rafId = requestAnimationFrame(() => { updateBlur(); updateVideoPlayback(); rafId = null; });
         });
         // 初始渲染
-        requestAnimationFrame(updateBlur);
+        requestAnimationFrame(() => { updateBlur(); updateVideoPlayback(); });
 
         // 右侧面板紧跟左侧卡片，保持原本间距，整体一起左移，移动端宽度加大
         const panelLeft = window.innerWidth * 0.5 + gap * 0.5 - mobileLeftOffset;
@@ -971,8 +1004,8 @@
           duration: 0.72,
           delay: 0.18,
           ease: "back.out(1.9)",
-          onUpdate: updateBlur,
-          onComplete: updateBlur
+          onUpdate: () => { updateBlur(); updateVideoPlayback(); },
+          onComplete: () => { updateBlur(); updateVideoPlayback(); }
         });
 
         panel.addEventListener("click", e => e.stopPropagation());
@@ -988,7 +1021,7 @@
             duration: 0.55,
             ease: "power3.out",
             overwrite: "auto",
-            onUpdate: updateBlur
+            onUpdate: () => { updateBlur(); updateVideoPlayback(); }
           });
         }, { passive: false });
       } else {

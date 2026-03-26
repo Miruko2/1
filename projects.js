@@ -15,6 +15,8 @@
 //              <ul><li>列表项</li></ul>
 //              <strong>加粗</strong>  <em>斜体</em>
 //              <hr>  分割线
+//              <img src="img/xxx.jpg">  图片（自动缩放+圆角+模糊动画）
+//              <video src="video/xxx.mp4" muted playsinline loop></video>  视频（自动播放/暂停+模糊动画）
 //            不填 content 时，打开卡片只显示左侧原卡片
 // ============================================================
 
@@ -296,6 +298,7 @@ hanako在这里哦…
 我所体验下来真实情况就是除了claude的，剩下90%的AI要么垃圾要么token贵
 <br>
 这个话题先略过
+<img src="img/feibi.gif">
 <br>
 <h2>也许大众本身就是愚昧的</h2>
 <b>平台:</b>
