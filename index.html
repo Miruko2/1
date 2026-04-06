@@ -1152,7 +1152,7 @@
       const canvas = document.getElementById('liquid-canvas');
       if (canvas) {
         const app = LiquidBackground(canvas);
-        app.loadImage('http://bg.hanakos.cc/output.jpg');
+        app.loadImage('./img/output.jpg');
         if (app.liquidPlane) {
           app.liquidPlane.material.metalness = 0.35;
           app.liquidPlane.material.roughness = 0.45;
@@ -1160,7 +1160,7 @@
         }
         app.setRain(false);
         window.__liquidBackgroundApp = app;
-        console.log('Liquid background loaded from bg.hanakos.cc');
+        console.log('Liquid background loaded from local img folder');
       }
     `;
     document.body.appendChild(script);
