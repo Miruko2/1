@@ -1141,21 +1141,80 @@
       // 初始化水波效果
       const app = LiquidBackground(canvas);
       
-      // 加载图片
-      app.loadImage('./img/output.jpg');
+      // 加载并调整图片大小以适配页面
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        
+        // 创建离屏canvas来调整图片大小
+        const offscreen = document.createElement('canvas');
+        offscreen.width = w * dpr;
+        offscreen.height = h * dpr;
+        const ctx = offscreen.getContext('2d');
+        
+        if (ctx) {
+          ctx.scale(dpr, dpr);
+          
+          // 计算图片缩放比例以覆盖整个画布
+          const imgRatio = img.width / img.height;
+          const canvasRatio = w / h;
+          let drawWidth, drawHeight, offsetX, offsetY;
+          
+          if (imgRatio > canvasRatio) {
+            // 图片更宽，以高度为准
+            drawHeight = h;
+            drawWidth = h * imgRatio;
+            offsetX = (w - drawWidth) / 2;
+            offsetY = 0;
+          } else {
+            // 图片更高，以宽度为准
+            drawWidth = w;
+            drawHeight = w / imgRatio;
+            offsetX = 0;
+            offsetY = (h - drawHeight) / 2;
+          }
+          
+          // 绘制适配后的图片
+          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+          
+          // 使用调整后的图片
+          const imageData = offscreen.toDataURL('image/jpeg', 0.95);
+          app.loadImage(imageData);
+          
+          // 配置材质参数
+          app.liquidPlane.material.metalness = 0.35;
+          app.liquidPlane.material.roughness = 0.45;
+          app.liquidPlane.uniforms.displacementScale.value = 2;
+          
+          // 关闭雨滴效果
+          app.setRain(false);
+          
+          console.log('Liquid background initialized with fitted image');
+        }
+      };
       
-      // 配置材质参数
-      app.liquidPlane.material.metalness = 0.35;
-      app.liquidPlane.material.roughness = 0.45;
-      app.liquidPlane.uniforms.displacementScale.value = 2;
+      img.onerror = function() {
+        console.error('Failed to load image: ./img/output.jpg');
+      };
       
-      // 关闭雨滴效果
-      app.setRain(false);
+      img.src = './img/output.jpg';
       
       // 保存实例以便清理
       window.__liquidBackgroundApp = app;
       
-      console.log('Liquid background initialized with image: ./img/output.jpg');
+      // 窗口大小改变时重新加载
+      let resizeTimeout;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          if (img.complete) {
+            img.onload();
+          }
+        }, 300);
+      });
     }
   </script>
 </body>
