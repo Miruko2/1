@@ -1,0 +1,54 @@
+Liquid Refraction Lab
+一个偏展示型的液态折射实验项目。内容被压在实时液面下方，鼠标移动时会触发折射、拖影和局部色散。
+
+灵感参考自 StarKnightt/liquid-effect-animation，但这个仓库不是对原项目的直接搬运。这里额外做了文字版舞台、图片版路由、色差滤镜层、可替换素材流和一套重新整理过的页面结构与参数。
+
+启动
+npm install
+npm run dev
+两个路由
+路由	说明
+localhost:3000	文字版舞台，编辑 app/page.tsx 改内容
+localhost:3000/demo?img=/文件名	图片版实验页，换 ?img= 参数切换图片
+怎么换图片
+把图片放进 public/ 目录
+访问 localhost:3000/demo?img=/你的文件名.jpg
+例：放了 silk.jpg → 访问 localhost:3000/demo?img=/silk.jpg
+
+注意文件扩展名要对上（.jpeg 和 .jpg 不一样）。
+
+怎么改文字版内容
+编辑 app/page.tsx：
+
+<RefractionStage
+  text={["第一行", "第二行"]}   // 主标题，每行一个元素
+  subText="副标题"               // 标题上方小字
+  tagline="底部说明文字"         // 标题下方小字
+  backgroundColor="#fafafa"
+  textColor="#1d1d1f"
+/>
+关键参数
+两个入口各有一套参数，分别控制文字版和图片版：
+
+components/ui/refraction-stage.tsx → 文字版
+app/demo/page.tsx → 图片版
+参数	值	说明
+metalness	0.35	金属感，调高更像镜面
+roughness	0.45	粗糙度，调低更光滑
+displacementScale	2	折射扭曲幅度
+和灵感仓库的区别
+这个仓库定位成可直接改内容的展示实验，不是单一示例页复刻
+首页是文字舞台，/demo 是图片实验页，入口结构不同
+图片版额外叠了 chromatic aberration 滤镜层，运动反馈更强
+README、组件命名、对外描述和默认内容都按当前项目重新组织
+适合放进液态的图片类型
+效果好的底图特征：高对比度、深色背景、有机形态、smooth 渐变。
+
+经过测试效果好的方向：
+
+液态金属 blob（深色背景）
+烟雾人像剪影
+macOS 风格渐变壁纸
+水面 caustic 光斑
+虹彩/油膜质感
+chrome 人像雕塑

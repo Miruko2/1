@@ -23,17 +23,30 @@
       padding: 0;
     }
 
+    /* Ensure the canvas doesn't interfere with touch events */
+    #liquid-background-canvas {
+      touch-action: none;
+    }
+
     html,
     body {
       width: 100%;
       min-height: 100%;
       font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
       color: var(--text);
-      background: radial-gradient(120% 120% at 10% 10%, #ffe7f1 0%, transparent 38%),
-                  radial-gradient(100% 100% at 90% 80%, #ffe1ec 0%, transparent 44%),
-                  linear-gradient(135deg, var(--bg-0) 0%, var(--bg-1) 40%, var(--bg-2) 100%);
+      background: transparent;
       overflow-x: hidden;
       cursor: default;
+    }
+    
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background: radial-gradient(120% 120% at 10% 10%, rgba(255, 231, 241, 0.3) 0%, transparent 38%),
+                  radial-gradient(100% 100% at 90% 80%, rgba(255, 225, 236, 0.25) 0%, transparent 44%);
     }
 
     body::before {
@@ -42,7 +55,7 @@
       inset: 0;
       pointer-events: none;
       opacity: 0.12;
-      z-index: 0;
+      z-index: 2;
       background-image:
         radial-gradient(circle at 20% 20%, rgba(219, 169, 189, 0.25) 0 0.7px, transparent 1px),
         radial-gradient(circle at 80% 70%, rgba(219, 169, 189, 0.2) 0 0.7px, transparent 1px);
@@ -50,9 +63,20 @@
       mix-blend-mode: soft-light;
     }
 
+    .water-bg-iframe {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 1;
+    }
+
     .page {
       position: relative;
-      z-index: 1;
+      z-index: 10;
       min-height: 100vh;
       padding: clamp(2rem, 4vw, 3.5rem);
     }
@@ -560,6 +584,8 @@
   </style>
 </head>
 <body>
+  <iframe class="water-bg-iframe" src="https://my-water-bg.vercel.app/" title="Water Background"></iframe>
+  
   <!-- 旋转提示 -->
   <div class="rotate-prompt">
     <div class="rotate-icon">
@@ -591,6 +617,7 @@
   <script src="projects.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js"></script>
+  <script src="simple-liquid-bg.js"></script>
   <script>
 
     // 根据数据渲染卡片到 timeline-track
@@ -1110,6 +1137,10 @@
     layoutCards();
     buildScroll();
     renderParallax();
+  </script>
+  <script>
+    // The simple-liquid-bg.js handles initialization automatically
+    // No additional initialization needed here
   </script>
 </body>
 </html>
