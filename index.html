@@ -412,6 +412,108 @@
       border-radius: 0.8rem;
       margin: 0.6rem 0;
       object-fit: cover;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .content-scroll-wrapper img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 24px rgba(194, 145, 166, 0.3);
+    }
+
+    /* 图片放大查看器 */
+    .image-viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .image-viewer.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .image-viewer-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 246, 249, 0.75);
+      backdrop-filter: blur(32px);
+      -webkit-backdrop-filter: blur(32px);
+      cursor: pointer;
+    }
+
+    .image-viewer-content {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+      z-index: 1;
+      transform: scale(0.85);
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .image-viewer.active .image-viewer-content {
+      transform: scale(1);
+    }
+
+    .image-viewer-content img {
+      display: block;
+      max-width: 100%;
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+      border-radius: 1.2rem;
+      box-shadow: 
+        0 48px 96px rgba(188, 132, 156, 0.4),
+        0 24px 48px rgba(194, 145, 166, 0.3),
+        0 12px 24px rgba(194, 145, 166, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      object-fit: contain;
+    }
+
+    .image-viewer-close {
+      position: absolute;
+      top: -48px;
+      right: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.9), rgba(255, 238, 244, 0.85));
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 8px 24px rgba(194, 145, 166, 0.25);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .image-viewer-close:hover {
+      transform: scale(1.1);
+      box-shadow: 0 12px 32px rgba(194, 145, 166, 0.35);
+    }
+
+    .image-viewer-close::before,
+    .image-viewer-close::after {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 1px;
+    }
+
+    .image-viewer-close::before {
+      transform: rotate(45deg);
+    }
+
+    .image-viewer-close::after {
+      transform: rotate(-45deg);
     }
 
     /* 横屏旋转提示 */
@@ -619,6 +721,15 @@
   <div class="overlay" id="overlay"></div>
   <div class="focus-aura" id="focusAura"></div>
 
+  <!-- 图片查看器 -->
+  <div class="image-viewer" id="imageViewer">
+    <div class="image-viewer-backdrop" id="imageViewerBackdrop"></div>
+    <div class="image-viewer-content">
+      <div class="image-viewer-close" id="imageViewerClose"></div>
+      <img id="imageViewerImg" src="" alt="">
+    </div>
+  </div>
+
   <script src="projects.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js"></script>
@@ -649,6 +760,12 @@
     const focusAura = document.getElementById("focusAura");
     const cards = gsap.utils.toArray(".project-card");
 
+    // 图片查看器元素
+    const imageViewer = document.getElementById("imageViewer");
+    const imageViewerImg = document.getElementById("imageViewerImg");
+    const imageViewerBackdrop = document.getElementById("imageViewerBackdrop");
+    const imageViewerClose = document.getElementById("imageViewerClose");
+
     let activeCard = null;
     let activeFocusCard = null;
     let activeContentPanel = null;
@@ -670,6 +787,24 @@
       x: gsap.quickTo(state.card, "xPercent", { duration: 0.85, ease: "power3.out" }),
       y: gsap.quickTo(state.card, "yPercent", { duration: 0.85, ease: "power3.out" })
     }));
+
+    // ── 图片查看器功能 ──
+    function openImageViewer(imgSrc) {
+      imageViewerImg.src = imgSrc;
+      imageViewer.classList.add("active");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeImageViewer() {
+      imageViewer.classList.remove("active");
+      document.body.style.overflow = activeCard ? "hidden" : "";
+      setTimeout(() => {
+        imageViewerImg.src = "";
+      }, 400);
+    }
+
+    imageViewerBackdrop.addEventListener("click", closeImageViewer);
+    imageViewerClose.addEventListener("click", closeImageViewer);
 
     // 初始化卡片轻微错位堆叠，建立层级感
     function layoutCards() {
@@ -1042,6 +1177,14 @@
 
         panel.addEventListener("click", e => e.stopPropagation());
 
+        // 为面板中的图片添加点击放大功能
+        panel.addEventListener("click", e => {
+          if (e.target.tagName === "IMG" && e.target.closest(".content-scroll-wrapper")) {
+            e.stopPropagation();
+            openImageViewer(e.target.src);
+          }
+        });
+
         let targetScroll = 0;
         panel.addEventListener("wheel", e => {
           e.preventDefault();
@@ -1073,11 +1216,6 @@
     });
 
     overlay.addEventListener("click", closeCard);
-    window.addEventListener("keydown", e => {
-      if (e.key === "Escape") {
-        closeCard();
-      }
-    });
 
     window.addEventListener("pointermove", pointerMove, { passive: true });
     window.addEventListener("resize", () => {
@@ -1142,6 +1280,17 @@
     layoutCards();
     buildScroll();
     renderParallax();
+
+    // ESC 键处理
+    window.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        if (imageViewer.classList.contains("active")) {
+          closeImageViewer();
+        } else {
+          closeCard();
+        }
+      }
+    });
   </script>
 </body>
 </html>
