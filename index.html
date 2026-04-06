@@ -1141,61 +1141,73 @@
         const canvas = document.getElementById('liquid-canvas');
         if (!canvas) return;
         
-        const app = LiquidBackground(canvas);
+        // 预处理图片以适配屏幕
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
         
-        // 等待图片加载
-        await app.loadImage('./img/output.jpg');
-        
-        // 配置材质参数
-        if (app.liquidPlane) {
-          app.liquidPlane.material.metalness = 0.35;
-          app.liquidPlane.material.roughness = 0.45;
-          app.liquidPlane.uniforms.displacementScale.value = 2;
+        img.onload = function() {
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+          const viewportRatio = viewportWidth / viewportHeight;
           
-          // --- 核心修改区：动态适配纹理大小 ---
-          if (app.liquidPlane.material.map) {
-            const texture = app.liquidPlane.material.map;
-            
-            const updateTextureFit = () => {
-              if (!texture.image) return;
-              
-              const canvasAspect = window.innerWidth / window.innerHeight;
-              const imageAspect = texture.image.width / texture.image.height;
-              
-              let scaleX = 1;
-              let scaleY = 1;
-              
-              // 【Contain 模式】保证整张图片都能完整显示在屏幕内
-              if (canvasAspect > imageAspect) {
-                // 屏幕比图片更宽，图片需要在X方向缩小
-                scaleX = imageAspect / canvasAspect;
-                scaleY = 1;
-              } else {
-                // 屏幕比图片更高，图片需要在Y方向缩小
-                scaleX = 1;
-                scaleY = canvasAspect / imageAspect;
-              }
-              
-              // 设置缩放和自动居中偏移
-              texture.repeat.set(scaleX, scaleY);
-              texture.offset.set((1 - scaleX) / 2, (1 - scaleY) / 2);
-              texture.needsUpdate = true;
-              
-              console.log('Texture fitted:', { canvasAspect, imageAspect, scaleX, scaleY });
-            };
-
-            // 初始加载时计算一次适配
-            setTimeout(updateTextureFit, 100);
-            
-            // 监听窗口拉伸或手机旋转，保持图片始终可见
-            window.addEventListener('resize', updateTextureFit);
+          const imgWidth = img.naturalWidth;
+          const imgHeight = img.naturalHeight;
+          const imgRatio = imgWidth / imgHeight;
+          
+          // 创建适配后的canvas
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = viewportWidth;
+          tempCanvas.height = viewportHeight;
+          const ctx = tempCanvas.getContext('2d');
+          
+          // 填充粉色背景
+          ctx.fillStyle = '#ffeef4';
+          ctx.fillRect(0, 0, viewportWidth, viewportHeight);
+          
+          // 计算contain模式的绘制参数
+          let drawWidth, drawHeight, offsetX, offsetY;
+          
+          if (viewportRatio > imgRatio) {
+            // 视口更宽，以高度为准
+            drawHeight = viewportHeight;
+            drawWidth = viewportHeight * imgRatio;
+            offsetX = (viewportWidth - drawWidth) / 2;
+            offsetY = 0;
+          } else {
+            // 视口更高，以宽度为准
+            drawWidth = viewportWidth;
+            drawHeight = viewportWidth / imgRatio;
+            offsetX = 0;
+            offsetY = (viewportHeight - drawHeight) / 2;
           }
-        }
+          
+          // 绘制图片
+          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+          
+          // 转换为data URL
+          const processedImage = tempCanvas.toDataURL('image/jpeg', 0.95);
+          
+          // 初始化液体背景
+          const app = LiquidBackground(canvas);
+          app.loadImage(processedImage);
+          
+          if (app.liquidPlane) {
+            app.liquidPlane.material.metalness = 0.35;
+            app.liquidPlane.material.roughness = 0.45;
+            app.liquidPlane.uniforms.displacementScale.value = 2;
+          }
+          
+          app.setRain(false);
+          window.__liquidBackgroundApp = app;
+          
+          console.log('Liquid background initialized with fitted image');
+        };
         
-        app.setRain(false);
+        img.onerror = function() {
+          console.error('Failed to load image');
+        };
         
-        window.__liquidBackgroundApp = app;
-        console.log('Liquid background initialized successfully');
+        img.src = './img/output.jpg';
         
       } catch (error) {
         console.error('Failed to initialize liquid background:', error);
