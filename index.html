@@ -1162,29 +1162,29 @@
         tempCanvas.height = viewportHeight;
         const ctx = tempCanvas.getContext('2d');
         
-        // 计算绘制参数（cover模式）
-        let sourceX, sourceY, sourceWidth, sourceHeight;
+        // 填充背景色
+        ctx.fillStyle = '#ffeef4';
+        ctx.fillRect(0, 0, viewportWidth, viewportHeight);
+        
+        // 计算绘制参数（contain模式 - 显示完整图片）
+        let drawWidth, drawHeight, offsetX, offsetY;
         
         if (imgRatio > viewportRatio) {
-          // 图片更宽，裁剪左右
-          sourceHeight = imgHeight;
-          sourceWidth = imgHeight * viewportRatio;
-          sourceX = (imgWidth - sourceWidth) / 2;
-          sourceY = 0;
+          // 图片更宽，以宽度为准
+          drawWidth = viewportWidth;
+          drawHeight = viewportWidth / imgRatio;
+          offsetX = 0;
+          offsetY = (viewportHeight - drawHeight) / 2;
         } else {
-          // 图片更高，裁剪上下
-          sourceWidth = imgWidth;
-          sourceHeight = imgWidth / viewportRatio;
-          sourceX = 0;
-          sourceY = (imgHeight - sourceHeight) / 2;
+          // 图片更高，以高度为准
+          drawHeight = viewportHeight;
+          drawWidth = viewportHeight * imgRatio;
+          offsetX = (viewportWidth - drawWidth) / 2;
+          offsetY = 0;
         }
         
-        // 绘制裁剪后的图片
-        ctx.drawImage(
-          img,
-          sourceX, sourceY, sourceWidth, sourceHeight,
-          0, 0, viewportWidth, viewportHeight
-        );
+        // 绘制完整图片（居中）
+        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
         
         // 转换为图片URL并加载到水波效果
         const fittedImageUrl = tempCanvas.toDataURL('image/jpeg', 0.92);
@@ -1196,7 +1196,7 @@
         app.liquidPlane.uniforms.displacementScale.value = 2;
         app.setRain(false);
         
-        console.log('Liquid background loaded with fitted image');
+        console.log('Liquid background loaded - contain mode');
       };
       
       img.onerror = function() {
