@@ -1133,7 +1133,7 @@
     renderParallax();
   </script>
   
-  <script type="module">
+ <script type="module">
     (async () => {
       try {
         const LiquidBackground = await import('https://cdn.jsdelivr.net/npm/threejs-components@0.0.30/build/backgrounds/liquid1.min.js').then(m => m.default);
@@ -1152,13 +1152,41 @@
           app.liquidPlane.material.roughness = 0.45;
           app.liquidPlane.uniforms.displacementScale.value = 2;
           
-          // 尝试调整纹理的重复和偏移来适配
+          // --- 核心修改区：动态适配纹理大小 ---
           if (app.liquidPlane.material.map) {
             const texture = app.liquidPlane.material.map;
-            texture.repeat.set(1, 1);
-            texture.offset.set(0, 0);
-            texture.center.set(0.5, 0.5);
-            texture.needsUpdate = true;
+            
+            const updateTextureFit = () => {
+              if (!texture.image) return;
+              
+              const canvasAspect = window.innerWidth / window.innerHeight;
+              const imageAspect = texture.image.width / texture.image.height;
+              
+              let repeatX = 1;
+              let repeatY = 1;
+              
+              // 【Contain 模式】保证整张图片都能完整显示在屏幕内
+              if (canvasAspect > imageAspect) {
+                // 屏幕比图片更宽，以高度为基准缩放宽度
+                repeatX = canvasAspect / imageAspect;
+                repeatY = 1;
+              } else {
+                // 屏幕比图片更高，以宽度为基准缩放高度
+                repeatX = 1;
+                repeatY = imageAspect / canvasAspect;
+              }
+              
+              // 设置缩放和自动居中偏移
+              texture.repeat.set(repeatX, repeatY);
+              texture.offset.set((1 - repeatX) / 2, (1 - repeatY) / 2);
+              texture.needsUpdate = true;
+            };
+
+            // 初始加载时计算一次适配
+            updateTextureFit();
+            
+            // 监听窗口拉伸或手机旋转，保持图片始终可见
+            window.addEventListener('resize', updateTextureFit);
           }
         }
         
