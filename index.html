@@ -589,7 +589,7 @@
   </style>
 </head>
 <body>
-  <iframe id="liquid-bg-iframe" src="https://my-water-bg.vercel.app/" style="position: fixed; inset: 0; width: 100%; height: 100%; border: none; z-index: 1;"></iframe>
+  <canvas id="liquid-canvas" style="position: fixed; inset: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
   
   <!-- 旋转提示 -->
   <div class="rotate-prompt">
@@ -1142,6 +1142,28 @@
     layoutCards();
     buildScroll();
     renderParallax();
+  </script>
+  
+  <script type="module">
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.textContent = `
+      import LiquidBackground from 'https://cdn.jsdelivr.net/npm/threejs-components@0.0.30/build/backgrounds/liquid1.min.js';
+      const canvas = document.getElementById('liquid-canvas');
+      if (canvas) {
+        const app = LiquidBackground(canvas);
+        app.loadImage('http://bg.hanakos.cc/output.jpg');
+        if (app.liquidPlane) {
+          app.liquidPlane.material.metalness = 0.35;
+          app.liquidPlane.material.roughness = 0.45;
+          app.liquidPlane.uniforms.displacementScale.value = 2;
+        }
+        app.setRain(false);
+        window.__liquidBackgroundApp = app;
+        console.log('Liquid background loaded from bg.hanakos.cc');
+      }
+    `;
+    document.body.appendChild(script);
   </script>
 </body>
 </html>
