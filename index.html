@@ -1133,86 +1133,23 @@
     renderParallax();
   </script>
   
- <script type="module">
-    (async () => {
-      try {
-        const LiquidBackground = await import('https://cdn.jsdelivr.net/npm/threejs-components@0.0.30/build/backgrounds/liquid1.min.js').then(m => m.default);
-        
-        const canvas = document.getElementById('liquid-canvas');
-        if (!canvas) return;
-        
-        // 预处理图片以适配屏幕
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        
-        img.onload = function() {
-          const viewportWidth = window.innerWidth;
-          const viewportHeight = window.innerHeight;
-          const viewportRatio = viewportWidth / viewportHeight;
-          
-          const imgWidth = img.naturalWidth;
-          const imgHeight = img.naturalHeight;
-          const imgRatio = imgWidth / imgHeight;
-          
-          // 创建适配后的canvas
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = viewportWidth;
-          tempCanvas.height = viewportHeight;
-          const ctx = tempCanvas.getContext('2d');
-          
-          // 填充粉色背景
-          ctx.fillStyle = '#ffeef4';
-          ctx.fillRect(0, 0, viewportWidth, viewportHeight);
-          
-          // 计算contain模式的绘制参数
-          let drawWidth, drawHeight, offsetX, offsetY;
-          
-          if (viewportRatio > imgRatio) {
-            // 视口更宽，以高度为准
-            drawHeight = viewportHeight;
-            drawWidth = viewportHeight * imgRatio;
-            offsetX = (viewportWidth - drawWidth) / 2;
-            offsetY = 0;
-          } else {
-            // 视口更高，以宽度为准
-            drawWidth = viewportWidth;
-            drawHeight = viewportWidth / imgRatio;
-            offsetX = 0;
-            offsetY = (viewportHeight - drawHeight) / 2;
-          }
-          
-          // 绘制图片
-          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-          
-          // 转换为data URL
-          const processedImage = tempCanvas.toDataURL('image/jpeg', 0.95);
-          
-          // 初始化液体背景
-          const app = LiquidBackground(canvas);
-          app.loadImage(processedImage);
-          
-          if (app.liquidPlane) {
-            app.liquidPlane.material.metalness = 0.35;
-            app.liquidPlane.material.roughness = 0.45;
-            app.liquidPlane.uniforms.displacementScale.value = 2;
-          }
-          
-          app.setRain(false);
-          window.__liquidBackgroundApp = app;
-          
-          console.log('Liquid background initialized with fitted image');
-        };
-        
-        img.onerror = function() {
-          console.error('Failed to load image');
-        };
-        
-        img.src = './img/output.jpg';
-        
-      } catch (error) {
-        console.error('Failed to initialize liquid background:', error);
+  <script type="module">
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.textContent = `
+      import LiquidBackground from 'https://cdn.jsdelivr.net/npm/threejs-components@0.0.30/build/backgrounds/liquid1.min.js';
+      const canvas = document.getElementById('liquid-canvas');
+      if (canvas) {
+        const app = LiquidBackground(canvas);
+        app.loadImage('./img/output.jpg');
+        app.liquidPlane.material.metalness = 0.35;
+        app.liquidPlane.material.roughness = 0.45;
+        app.liquidPlane.uniforms.displacementScale.value = 2;
+        app.setRain(false);
+        window.__liquidBackgroundApp = app;
       }
-    })();
+    `;
+    document.body.appendChild(script);
   </script>
 </body>
 </html>
