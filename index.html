@@ -1141,82 +1141,21 @@
       // 初始化水波效果
       const app = LiquidBackground(canvas);
       
-      // 预加载图片并生成适配版本
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // 直接加载原始图片，不做任何处理
+      app.loadImage('./img/output.jpg');
       
-      img.onload = function() {
-        // 获取窗口尺寸
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        const viewportRatio = viewportWidth / viewportHeight;
-        
-        // 获取图片尺寸
-        const imgWidth = img.naturalWidth;
-        const imgHeight = img.naturalHeight;
-        const imgRatio = imgWidth / imgHeight;
-        
-        // 创建适配后的canvas
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = viewportWidth;
-        tempCanvas.height = viewportHeight;
-        const ctx = tempCanvas.getContext('2d');
-        
-        // 填充背景色
-        ctx.fillStyle = '#ffeef4';
-        ctx.fillRect(0, 0, viewportWidth, viewportHeight);
-        
-        // 计算绘制参数（contain模式 - 显示完整图片）
-        let drawWidth, drawHeight, offsetX, offsetY;
-        
-        if (imgRatio > viewportRatio) {
-          // 图片更宽，以宽度为准
-          drawWidth = viewportWidth;
-          drawHeight = viewportWidth / imgRatio;
-          offsetX = 0;
-          offsetY = (viewportHeight - drawHeight) / 2;
-        } else {
-          // 图片更高，以高度为准
-          drawHeight = viewportHeight;
-          drawWidth = viewportHeight * imgRatio;
-          offsetX = (viewportWidth - drawWidth) / 2;
-          offsetY = 0;
-        }
-        
-        // 绘制完整图片（居中）
-        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-        
-        // 转换为图片URL并加载到水波效果
-        const fittedImageUrl = tempCanvas.toDataURL('image/jpeg', 0.92);
-        app.loadImage(fittedImageUrl);
-        
-        // 配置材质参数
+      // 配置材质参数
+      if (app.liquidPlane) {
         app.liquidPlane.material.metalness = 0.35;
         app.liquidPlane.material.roughness = 0.45;
         app.liquidPlane.uniforms.displacementScale.value = 2;
-        app.setRain(false);
-        
-        console.log('Liquid background loaded - contain mode');
-      };
+      }
       
-      img.onerror = function() {
-        console.error('Failed to load image');
-      };
-      
-      img.src = './img/output.jpg';
-      
-      // 窗口大小改变时重新加载
-      let resizeTimer;
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          if (img.complete && img.naturalWidth > 0) {
-            img.onload();
-          }
-        }, 500);
-      });
+      app.setRain(false);
       
       window.__liquidBackgroundApp = app;
+      
+      console.log('Liquid background initialized with original image');
     }
   </script>
 </body>
