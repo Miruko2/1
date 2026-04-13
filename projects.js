@@ -409,10 +409,21 @@ hanako在这里哦…
     image: "img/pink_girl2.jpg"
   },
   {
-    year:  "2024",
-    tag:   "Autonomous Ops",
-    title: "Astra Fleet Console",
-    desc:  "面向大规模设备协同的运维中枢，以低认知负担实现高密度信息管理。",
+    year:  "2026",
+    tag:   "今天是特殊的一天",
+    title: "SOLVE MY SELF",
+    desc:  "SPECIAL DAY",
+    content:`<p>
+    angel dust
+    今天才知道父母有多蠢
+白白折磨了两年
+现在我要靠我自己的方法来解决皮肤瘙痒和失眠的问题
+不会再听信他们的言论
+说起来写这个帖子的时候，刚好这个帖子的默认文字出现了“低认知”的文字，实在是凑巧
+<img src="img/special.png">
+<b>不要听信任何认知比你低的人的言论</b>
+今天是特殊的一天
+angel dust</p>`,
     depth: 1.25,
     image: "img/pink_girl.jpg"
   },
