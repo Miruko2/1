@@ -399,8 +399,19 @@ hanako在这里哦…
 
 希望老天不会折磨我太久
 
+<img src="https://github.com/Miruko2/blog-assets/blob/main/a4589ef1-526f-4a9e-b9f3-43526a5df14d.png?raw=true">
+<img src="https://github.com/Miruko2/blog-assets/blob/main/b3ff40de2d432d55aa99bcc20f8f2485.png?raw=true">
+<img src="https://github.com/Miruko2/blog-assets/blob/main/f6d6f961af1667ebc773fe45bd718610.png?raw=true">
+
+没想到我会这么怕疼
+
+虽然有个未经审查的AI作为辅助
+
+但我还是太怂了
+
+..
 `,
     depth: 1.45,
-    image: ""
+    image: "img/pinkcatgirl.jpg"
   },
 ];
