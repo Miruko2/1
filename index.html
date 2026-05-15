@@ -339,12 +339,19 @@
       background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(255, 238, 244, 0.92));
     }
 
+    .focus-image-only {
+      overflow: hidden;
+      border-radius: 1.3rem 0 0 1.3rem;
+      box-shadow: 0 18px 48px rgba(194, 145, 166, 0.2);
+      will-change: transform, opacity, filter;
+    }
+
     /* ── 右侧内容面板 ── */
     .content-panel {
       position: fixed;
       z-index: 1200;
       pointer-events: auto;
-      border-radius: 1.3rem;
+      border-radius: 0 1.3rem 1.3rem 0;
       background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(255, 238, 244, 0.92));
       border: 1px solid var(--glass-border);
       box-shadow:
@@ -361,10 +368,10 @@
       inset: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 1.4rem 1.5rem;
+      padding: 1.8rem 2rem;
       box-sizing: border-box;
-      font-size: 0.9rem;
-      line-height: 1.7;
+      font-size: 1.1rem;
+      line-height: 1.8;
       color: rgba(78, 72, 76, 0.84);
       white-space: pre-wrap;
       scrollbar-width: none;
@@ -381,22 +388,22 @@
     .content-scroll-wrapper hr,
     .content-scroll-wrapper img,
     .content-scroll-wrapper video {
-      transition: filter 0.12s ease-out, opacity 0.12s ease-out;
+      transition: filter 0.35s ease-out, opacity 0.35s ease-out;
     }
 
     .content-panel h3,
     .content-panel h4 {
-      font-size: 0.9rem;
+      font-size: 1.2rem;
       font-weight: 600;
       letter-spacing: 0.04em;
-      margin: 0.9rem 0 0.3rem;
+      margin: 1.1rem 0 0.4rem;
       color: rgba(60, 52, 58, 0.9);
       white-space: normal;
     }
-    .content-panel p  { margin: 0.3rem 0 0.5rem; white-space: pre-wrap; }
+    .content-panel p  { margin: 0.5rem 0 0.7rem; white-space: pre-wrap; }
     .content-panel ul,
-    .content-panel ol { padding-left: 1.1rem; margin: 0.3rem 0 0.5rem; white-space: normal; }
-    .content-panel li { margin-bottom: 0.25rem; }
+    .content-panel ol { padding-left: 1.3rem; margin: 0.5rem 0 0.7rem; white-space: normal; }
+    .content-panel li { margin-bottom: 0.35rem; }
     .content-panel hr { border: none; border-top: 1px solid rgba(194,145,166,0.3); margin: 0.8rem 0; }
     .content-panel strong { font-weight: 600; }
     .content-panel em    { font-style: italic; opacity: 0.85; }
@@ -408,9 +415,10 @@
     .content-scroll-wrapper video {
       display: block;
       max-width: 100%;
+      max-height: 280px;
       height: auto;
-      border-radius: 0.8rem;
-      margin: 0.6rem 0;
+      border-radius: 1rem;
+      margin: 0.8rem 0;
       object-fit: cover;
       cursor: pointer;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -1011,24 +1019,57 @@
       const isMobile = "ontouchstart" in window && window.innerWidth <= 860;
       const gap = isMobile ? 12 : 28;
 
-      // 移动端：聚焦卡片保持原始尺寸，不放大
-      let focusW = rect.width;
-      let focusH = rect.height;
+      // 放大打开的帖子尺寸
+      const scaleFactor = isMobile ? 1 : 1.35;
+      let focusW = rect.width * scaleFactor;
+      let focusH = rect.height * scaleFactor;
 
       // 有 content 时左移，否则居中；移动端整体左移，保持左右卡片原本间距
       const mobileLeftOffset = isMobile && hasTwoPanel ? window.innerWidth * 0.06 : 0;
+      // 有内容时，图片和面板紧挨着，没有间隙
+      const panelGap = hasTwoPanel ? 0 : gap;
       const targetCenterX = hasTwoPanel
-        ? window.innerWidth * 0.5 - focusW * 0.5 - gap * 0.5 - mobileLeftOffset
+        ? window.innerWidth * 0.5 - focusW * 0.5 - panelGap * 0.5 - mobileLeftOffset
         : window.innerWidth * 0.5;
       const offsetX = targetCenterX - cardCenterX;
       const offsetY = centerY - cardCenterY;
       const auraWidth = focusW * 1.36;
       const auraHeight = focusH * 1.42;
 
-      const focusCardEl = card.cloneNode(true);
-      focusCardEl.classList.remove("is-active");
-      focusCardEl.classList.add("focus-card");
-      document.body.appendChild(focusCardEl);
+      // 有内容面板时，计算整体布局（图片+面板）
+      let finalImageWidth, finalPanelWidth, imageX, panelX;
+      if (hasTwoPanel) {
+        const totalWidth = focusW * 2; // 图片+面板总宽度
+        const availableWidth = window.innerWidth * 0.85; // 可用宽度
+        const scale = Math.min(1, availableWidth / totalWidth);
+        finalImageWidth = focusW * scale;
+        finalPanelWidth = focusW * scale;
+
+        // 整体居中布局
+        const totalLayoutWidth = finalImageWidth + finalPanelWidth;
+        const layoutStartX = (window.innerWidth - totalLayoutWidth) / 2;
+        imageX = layoutStartX;
+        panelX = layoutStartX + finalImageWidth;
+      } else {
+        finalImageWidth = focusW;
+        finalPanelWidth = focusW;
+        imageX = targetCenterX;
+        panelX = 0; // 不使用
+      }
+
+      let focusCardEl;
+      if (hasTwoPanel && proj.image) {
+        // 有内容时，左边只显示图片
+        focusCardEl = document.createElement("div");
+        focusCardEl.className = "focus-card focus-image-only";
+        focusCardEl.innerHTML = `<img src="${proj.image}" alt="${proj.title}" style="width:100%;height:100%;object-fit:cover;">`;
+        document.body.appendChild(focusCardEl);
+      } else {
+        focusCardEl = card.cloneNode(true);
+        focusCardEl.classList.remove("is-active");
+        focusCardEl.classList.add("focus-card");
+        document.body.appendChild(focusCardEl);
+      }
 
       activeFocusCard = focusCardEl;
       focusCardEl.addEventListener("click", e => {
@@ -1067,12 +1108,18 @@
       gsap.set(focusAura, { width: auraWidth, height: auraHeight, x: 0, y: 0 });
       gsap.to(focusAura, { opacity: 0.92, scale: 1.08, duration: 0.7, ease: "power4.out" });
 
+      // 计算图片的y偏移，使其与面板垂直居中对齐
+      const focusCardYOffset = centerY - focusH * 0.5 - rect.top;
+
+      // 有内容面板时，使用计算好的位置
+      const finalImageX = hasTwoPanel ? imageX - rect.left : offsetX;
+
       gsap.to(focusCardEl, {
-        x: offsetX,
-        y: offsetY,
-        width: focusW,
+        x: finalImageX,
+        y: focusCardYOffset,
+        width: finalImageWidth,
         height: focusH,
-        scale: hasTwoPanel ? 1 : (isMobile ? 1 : 1.15),
+        scale: 1,
         filter: "blur(0px)",
         duration: 0.8,
         ease: "expo.out"
@@ -1098,11 +1145,12 @@
         activeContentPanel = panel;
 
         // 计算每个块级元素的模糊/透明度
-        const FADE = 70;   // 上下各 90px 的渐变区
-        const MAX_BLUR = 20;
+        const FADE = 100;   // 上下各 100px 的渐变区
+        const MAX_BLUR = 25;
         function updateBlur() {
           const wrapRect = scrollWrapper.getBoundingClientRect();
           const H = wrapRect.height;
+          const scrolled = scrollWrapper.scrollTop > 5; // 滚动超过5px才启用顶部模糊
           scrollWrapper.querySelectorAll("p, h3, h4, ul, ol, hr, img, video").forEach(el => {
             const r = el.getBoundingClientRect();
             const top = r.top - wrapRect.top;
@@ -1112,7 +1160,7 @@
               t = 0;
             } else if (top > H - FADE) {
               t = Math.max(0, (H - top) / FADE);
-            } else if (bot < FADE) {
+            } else if (scrolled && bot < FADE) {
               t = Math.max(0, bot / FADE);
             }
             el.style.filter  = t < 0.99 ? `blur(${(MAX_BLUR * (1 - t)).toFixed(2)}px)` : "";
@@ -1147,16 +1195,16 @@
         // 初始渲染
         requestAnimationFrame(() => { updateBlur(); updateVideoPlayback(); });
 
-        // 右侧面板紧跟左侧卡片，保持原本间距，整体一起左移，移动端宽度加大
-        const panelLeft = window.innerWidth * 0.5 + gap * 0.5 - mobileLeftOffset;
-        const panelWidth = isMobile
+        // 右侧面板紧跟左侧图片，紧挨着，整体一起左移
+        const panelLeft = hasTwoPanel ? panelX : (window.innerWidth * 0.5 + panelGap * 0.5 - mobileLeftOffset);
+        const panelW = isMobile
           ? Math.min(window.innerWidth - panelLeft - 8, focusW * 1.4)
-          : rect.width;
+          : finalPanelWidth;
 
         gsap.set(panel, {
           left: panelLeft,
           top: centerY - focusH * 0.5,
-          width: panelWidth,
+          width: panelW,
           height: focusH,
           scale: 0.82,
           opacity: 0,
@@ -1190,10 +1238,10 @@
           e.preventDefault();
           e.stopPropagation();
           const maxScroll = scrollWrapper.scrollHeight - scrollWrapper.clientHeight;
-          targetScroll = Math.max(0, Math.min(maxScroll, targetScroll + e.deltaY * 0.3));
+          targetScroll = Math.max(0, Math.min(maxScroll, targetScroll + e.deltaY * 0.4));
           gsap.to(scrollWrapper, {
             scrollTop: targetScroll,
-            duration: 0.55,
+            duration: 0.75,
             ease: "power3.out",
             overwrite: "auto",
             onUpdate: () => { updateBlur(); updateVideoPlayback(); }
