@@ -295,6 +295,357 @@
     .focus-card .project-desc strong { font-weight: 600; }
     .focus-card .project-desc em     { font-style: italic; opacity: 0.85; }
 
+    /* ── 底部容器：装 nav 和独立的 jump 胶囊 ── */
+    .timeline-bottom {
+      position: fixed;
+      left: 50%;
+      bottom: clamp(1.2rem, 2.4vw, 2rem);
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      pointer-events: none; /* 子元素再启用 */
+    }
+
+    /* nav 和 jump 共享的毛玻璃胶囊外观 */
+    .timeline-nav,
+    .timeline-nav-jump {
+      padding: 0.75rem 1.4rem;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 238, 244, 0.6));
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 14px 36px rgba(194, 145, 166, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+      pointer-events: auto;
+      user-select: none;
+    }
+
+    .timeline-nav {
+      transition: opacity 0.45s ease, transform 0.55s cubic-bezier(.2,.8,.2,1);
+    }
+
+    /* jump 胶囊：相对窄，内容居中 */
+    .timeline-nav-jump {
+      padding: 0.75rem 1.1rem;
+      display: flex;
+      align-items: center;
+      transition: opacity 0.45s ease, transform 0.55s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .timeline-nav.is-hidden {
+      opacity: 0;
+      transform: translateY(24px);
+      pointer-events: none;
+    }
+
+    .timeline-nav-track {
+      position: relative;
+      width: clamp(220px, 38vw, 460px);
+      height: 18px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* 背景轨道线 */
+    .timeline-nav-track::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      top: 50%;
+      height: 2px;
+      transform: translateY(-50%);
+      background: linear-gradient(90deg, rgba(219, 169, 189, 0.25), rgba(219, 169, 189, 0.18));
+      border-radius: 2px;
+    }
+
+    /* 进度填充线（left / width 由 JS 按可见首尾节点真实位置动态设置） */
+    .timeline-nav-fill {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      height: 2px;
+      transform: translateY(-50%);
+      width: 0;
+      background: linear-gradient(90deg, rgba(244, 166, 198, 0.95), rgba(255, 197, 220, 0.95));
+      border-radius: 2px;
+      box-shadow: 0 0 10px rgba(244, 166, 198, 0.55);
+      transition: width 0.18s ease-out, left 0.18s ease-out;
+    }
+
+    .timeline-nav-nodes {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .timeline-nav-node {
+      position: relative;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1.5px solid rgba(219, 169, 189, 0.55);
+      cursor: pointer;
+      transition: transform 0.35s cubic-bezier(.2,.8,.2,1),
+                  background 0.3s ease,
+                  border-color 0.3s ease,
+                  box-shadow 0.35s ease;
+      flex-shrink: 0;
+    }
+
+    .timeline-nav-node:hover {
+      transform: scale(1.35);
+      border-color: rgba(244, 166, 198, 0.9);
+      box-shadow: 0 0 12px rgba(244, 166, 198, 0.55);
+    }
+
+    /* 已经路过的节点 */
+    .timeline-nav-node.is-passed {
+      background: rgba(244, 166, 198, 0.85);
+      border-color: rgba(244, 166, 198, 0.9);
+    }
+
+    /* 当前激活节点 */
+    .timeline-nav-node.is-active {
+      transform: scale(1.55);
+      background: #fff;
+      border-color: rgba(244, 166, 198, 1);
+      box-shadow: 0 0 0 4px rgba(244, 166, 198, 0.28),
+                  0 0 18px rgba(244, 166, 198, 0.7);
+    }
+
+    /* 节点上方的 tooltip */
+    .timeline-nav-node::after {
+      content: attr(data-label);
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 14px);
+      transform: translateX(-50%) translateY(6px);
+      padding: 0.35rem 0.65rem;
+      border-radius: 0.55rem;
+      background: rgba(48, 38, 44, 0.86);
+      color: #fff;
+      font-size: 0.72rem;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.35s cubic-bezier(.2,.8,.2,1);
+      backdrop-filter: blur(8px);
+    }
+
+    .timeline-nav-node:hover::after,
+    .timeline-nav-node.is-active::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 节点编号 / 进度文字 —— 可点击跳转 */
+    .timeline-nav-count {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: rgba(110, 92, 102, 0.78);
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .timeline-nav-count:hover {
+      color: rgba(244, 144, 184, 1);
+    }
+
+    /* 数字 b 元素 = 滚动数字的裁剪容器 */
+    .timeline-nav-count b {
+      font-weight: 600;
+      color: rgba(244, 144, 184, 0.95);
+      display: inline-block;
+      vertical-align: middle;
+      min-width: 1em;
+      height: 1em;
+      line-height: 1;
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+      transition: min-width 0.25s ease; /* 1→10 时宽度过渡 */
+    }
+
+    /* hover 时给整个 count 加点点下划线作为可点击提示 */
+    .timeline-nav-count:hover {
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-underline-offset: 4px;
+    }
+
+    /* 每个数字 cell：默认占据容器整个区域，动画前后位置由 transform 决定 */
+    .timeline-nav-count b .num-cell {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      text-align: center;
+      line-height: 1;
+    }
+
+    /* 新数字 pop 出来：从 scale(0) 用 back-out 弹回 scale(1)，过冲一点点 */
+    .timeline-nav-count b .num-cell.popping-in {
+      animation: num-pop-in 0.42s cubic-bezier(.34, 1.56, .64, 1) forwards;
+    }
+    /* 旧数字快速缩小消失 */
+    .timeline-nav-count b .num-cell.popping-out {
+      animation: num-pop-out 0.18s ease-in forwards;
+    }
+
+    @keyframes num-pop-in {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    @keyframes num-pop-out {
+      from { transform: scale(1); opacity: 1; }
+      to   { transform: scale(0); opacity: 0; }
+    }
+
+    /* ── 跳转弹窗 ── */
+    .jump-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1500; /* 高于 focus-card (1200)，确保始终最上层 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+    .jump-modal.is-open {
+      pointer-events: auto;
+      opacity: 1;
+    }
+
+    /* 全屏背景：毛玻璃模糊整个页面 */
+    .jump-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 246, 249, 0.32);
+      backdrop-filter: blur(22px) saturate(120%);
+      -webkit-backdrop-filter: blur(22px) saturate(120%);
+    }
+
+    /* 弹窗本体：毛玻璃 + 弹跳出场 */
+    .jump-modal-panel {
+      position: relative;
+      padding: 1.7rem 2.1rem 1.5rem;
+      border-radius: 1.5rem;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 238, 244, 0.72));
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      box-shadow:
+        0 28px 72px rgba(194, 145, 166, 0.36),
+        0 0 80px var(--glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.92);
+      text-align: center;
+      min-width: 280px;
+      transform: scale(0.7) translateY(20px);
+      opacity: 0;
+      transition: transform 0.5s cubic-bezier(.34, 1.56, .64, 1),
+                  opacity 0.32s ease;
+    }
+    .jump-modal.is-open .jump-modal-panel {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    .jump-modal-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: rgba(60, 52, 58, 0.92);
+      margin: 0 0 0.35rem;
+      letter-spacing: 0.04em;
+    }
+    .jump-modal-hint {
+      font-size: 0.74rem;
+      color: rgba(110, 92, 102, 0.7);
+      letter-spacing: 0.06em;
+      margin: 0 0 0.95rem;
+    }
+    .jump-modal-input {
+      width: 6em;
+      padding: 0.5em 0.3em;
+      border: 1.5px solid rgba(244, 166, 198, 0.6);
+      border-radius: 0.65em;
+      background: rgba(255, 255, 255, 0.88);
+      color: rgba(244, 144, 184, 1);
+      font-weight: 600;
+      font-size: 1.5rem;
+      text-align: center;
+      outline: none;
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    .jump-modal-input::-webkit-outer-spin-button,
+    .jump-modal-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .jump-modal-input:focus {
+      border-color: rgba(244, 144, 184, 1);
+      box-shadow: 0 0 0 4px rgba(244, 166, 198, 0.28);
+    }
+    .jump-modal-hint-bottom {
+      margin: 0.9rem 0 0;
+      font-size: 0.66rem;
+      color: rgba(110, 92, 102, 0.55);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 640px) {
+      .jump-modal-panel {
+        padding: 1.4rem 1.6rem 1.2rem;
+        min-width: 240px;
+      }
+      .jump-modal-input { font-size: 1.3rem; }
+    }
+
+    @media (max-width: 640px) {
+      .timeline-bottom {
+        bottom: 0.9rem;
+        gap: 0.5rem;
+      }
+      .timeline-nav { padding: 0.55rem 1rem; }
+      .timeline-nav-jump { padding: 0.55rem 0.85rem; }
+      .timeline-nav-track { width: clamp(180px, 60vw, 320px); }
+      .timeline-nav-node::after { font-size: 0.66rem; }
+      .timeline-nav-count { font-size: 0.7rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .timeline-nav,
+      .timeline-nav-jump,
+      .timeline-nav-fill,
+      .timeline-nav-node,
+      .timeline-nav-node::after,
+      .jump-modal,
+      .jump-modal-panel {
+        transition: none !important;
+      }
+      .timeline-nav-count b .num-cell.popping-in,
+      .timeline-nav-count b .num-cell.popping-out {
+        animation: none !important;
+      }
+    }
+
     .overlay {
       position: fixed;
       inset: 0;
@@ -726,6 +1077,21 @@
     </section>
   </main>
 
+  <!-- 底部时间轴导航 + 独立跳转胶囊 -->
+  <!-- 时间轴最多显示 5 个节点（窗口跟随激活卡片） -->
+  <div class="timeline-bottom" id="timelineBottom">
+    <nav class="timeline-nav" id="timelineNav" aria-label="项目导航">
+      <div class="timeline-nav-track">
+        <div class="timeline-nav-fill" id="timelineNavFill"></div>
+        <div class="timeline-nav-nodes" id="timelineNavNodes"></div>
+      </div>
+    </nav>
+    <!-- 独立跳转胶囊：点击数字直接输入跳转 -->
+    <div class="timeline-nav-jump" id="timelineNavJump" aria-label="跳转到指定卡片">
+      <div class="timeline-nav-count" id="timelineNavCount"><b><span class="num-cell">1</span></b></div>
+    </div>
+  </div>
+
   <div class="overlay" id="overlay"></div>
   <div class="focus-aura" id="focusAura"></div>
 
@@ -738,14 +1104,33 @@
     </div>
   </div>
 
+  <!-- 跳转弹窗：点击底部数字时弹出 -->
+  <div class="jump-modal" id="jumpModal" aria-hidden="true">
+    <div class="jump-modal-backdrop" id="jumpModalBackdrop"></div>
+    <div class="jump-modal-panel" role="dialog" aria-modal="true" aria-labelledby="jumpModalTitle">
+      <h3 class="jump-modal-title" id="jumpModalTitle">跳转到帖子</h3>
+      <p class="jump-modal-hint">输入帖子编号，自动跳转</p>
+      <input type="number" class="jump-modal-input" id="jumpModalInput" min="1" inputmode="numeric" />
+      <p class="jump-modal-hint-bottom">Enter 确认 · Esc 关闭</p>
+    </div>
+  </div>
+
   <script src="projects.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js"></script>
   <script src="simple-liquid-bg.js"></script>
   <script>
 
-    // 根据数据渲染卡片到 timeline-track
+    // 根据数据渲染卡片到 timeline-track，同时生成底部时间轴节点
     const track = document.getElementById("timelineTrack");
+    const navNodesEl = document.getElementById("timelineNavNodes");
+    const navFillEl = document.getElementById("timelineNavFill");
+    const navCountEl = document.getElementById("timelineNavCount");
+    const navEl = document.getElementById("timelineNav");
+
+    // 一次显示的节点数（窗口大小）
+    const NAV_WINDOW = 5;
+
     PROJECTS.forEach((p, i) => {
       const thumbInner = p.image
         ? `<img src="${p.image}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;">`
@@ -760,7 +1145,19 @@
           </div>
         </article>
       `);
+
+      // 底部时间轴节点
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = "timeline-nav-node";
+      node.dataset.index = String(i);
+      node.dataset.label = p.title || `#${i + 1}`;
+      node.setAttribute("aria-label", `跳转到 ${p.title || "项目 " + (i + 1)}`);
+      navNodesEl.appendChild(node);
     });
+
+    const navNodes = Array.from(navNodesEl.querySelectorAll(".timeline-nav-node"));
+    navCountEl.innerHTML = `<b><span class="num-cell">1</span></b>`;
 
 
     const viewport = document.getElementById("timelineViewport");
@@ -825,6 +1222,187 @@
       });
     }
 
+    // ── 底部时间轴导航：分页窗口 + 进度联动 + 节点点击跳转 ──
+    let currentNavIndex = 0;
+    let navWindowStart = 0; // 当前窗口起始节点 index
+
+    // 窗口跟随当前激活节点：只显示窗口内的 W 个节点，其余隐藏
+    function updateNavWindow(activeIdx) {
+      const N = navNodes.length;
+      if (!N) return;
+      const W = Math.min(NAV_WINDOW, N);
+      // activeIdx 尽量居中，首尾不越界
+      let start = activeIdx - Math.floor((W - 1) / 2);
+      start = Math.max(0, Math.min(N - W, start));
+      if (start === navWindowStart) return; // 窗口未变化，跳过 DOM 操作
+      navWindowStart = start;
+      navNodes.forEach((node, i) => {
+        node.style.display = (i >= start && i < start + W) ? "" : "none";
+      });
+    }
+
+    function updateTimelineNav(progress) {
+      // progress: 0~1
+      const N = navNodes.length;
+      if (!N) return;
+      const p = Math.max(0, Math.min(1, progress));
+
+      // 找到最接近的节点作为当前激活
+      const idx = N === 1 ? 0 : Math.round(p * (N - 1));
+      const clamped = Math.max(0, Math.min(N - 1, idx));
+
+      // 先更新窗口（隐藏/显示节点），再算 fill 位置（基于可见节点的实际 offsetLeft）
+      updateNavWindow(clamped);
+
+      navNodes.forEach((node, i) => {
+        node.classList.toggle("is-active", i === clamped);
+        node.classList.toggle("is-passed", i < clamped);
+      });
+
+      // 进度填充：用可见首节点和当前激活节点的真实中心位置
+      // 当前激活节点一定在可见窗口内（由 updateNavWindow 保证）
+      const visibleFirst = navNodes.find(n => n.style.display !== "none");
+      const activeNode = navNodes[clamped];
+      if (visibleFirst && activeNode) {
+        const startX = visibleFirst.offsetLeft + visibleFirst.offsetWidth / 2;
+        const activeX = activeNode.offsetLeft + activeNode.offsetWidth / 2;
+        navFillEl.style.left = startX + "px";
+        navFillEl.style.width = Math.max(0, activeX - startX) + "px";
+      } else {
+        navFillEl.style.width = "0px";
+      }
+
+      if (clamped !== currentNavIndex) {
+        currentNavIndex = clamped;
+        pulseNavCountTo(clamped + 1);
+      }
+    }
+
+    // 系统"减少动画"偏好检测（pop 动画和弹窗都会用到）
+    const prefersReducedMotion = window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function pulseNavCountTo(newNum) {
+      const b = navCountEl.querySelector("b");
+      if (!b) {
+        // b 不在了（比如编辑中），直接重渲染
+        navCountEl.innerHTML = `<b><span class="num-cell">${newNum}</span></b>`;
+        return;
+      }
+      // 找到当前展示的数字（不在退出状态的最新 cell）
+      const liveCells = b.querySelectorAll(".num-cell:not(.popping-out)");
+      const lastCell = liveCells[liveCells.length - 1];
+      if (!lastCell) {
+        b.innerHTML = `<span class="num-cell">${newNum}</span>`;
+        return;
+      }
+      if (lastCell.textContent === String(newNum)) return;
+
+      // 减少动画偏好：直接换文字，不堆积 DOM
+      if (prefersReducedMotion) {
+        lastCell.textContent = String(newNum);
+        return;
+      }
+
+      // 旧 cell 快速缩小消失，结束后从 DOM 移除
+      lastCell.classList.add("popping-out");
+      lastCell.addEventListener(
+        "animationend",
+        () => { lastCell.remove(); },
+        { once: true }
+      );
+
+      // 新 cell 从 scale(0) 弹出
+      const newCell = document.createElement("span");
+      newCell.className = "num-cell popping-in";
+      newCell.textContent = String(newNum);
+      b.appendChild(newCell);
+
+      // 动画结束后清理 class，避免重播
+      newCell.addEventListener(
+        "animationend",
+        () => { newCell.classList.remove("popping-in"); },
+        { once: true }
+      );
+    }
+
+    // 初始化窗口（如果节点数 > 5，先隐藏多余的）
+    updateNavWindow(0);
+
+    // 跳转到第 i 张卡片：直接设置 window 滚动位置，ScrollTrigger 的 scrub 会平滑过渡
+    function jumpToIndex(i) {
+      if (!scrollTween || !scrollTween.scrollTrigger) return;
+      const N = navNodes.length;
+      if (N <= 1) return;
+      const clamped = Math.max(0, Math.min(N - 1, i));
+      const targetProgress = clamped / (N - 1);
+      const st = scrollTween.scrollTrigger;
+      const targetScroll = st.start + targetProgress * (st.end - st.start);
+      window.scrollTo({ top: targetScroll, behavior: "smooth" });
+    }
+
+    // 节点点击事件
+    navNodes.forEach(node => {
+      node.addEventListener("click", e => {
+        e.stopPropagation();
+        if (activeCard) closeCard();
+        jumpToIndex(parseInt(node.dataset.index, 10));
+      });
+    });
+
+    // ── 点击底部数字 → 弹出跳转 Modal ──
+    const jumpModal = document.getElementById("jumpModal");
+    const jumpModalBackdrop = document.getElementById("jumpModalBackdrop");
+    const jumpModalInput = document.getElementById("jumpModalInput");
+    navCountEl.title = "点击跳转到指定帖子";
+
+    function isJumpModalOpen() {
+      return jumpModal.classList.contains("is-open");
+    }
+
+    function openJumpModal() {
+      const N = navNodes.length;
+      if (N <= 1) return;
+      jumpModalInput.max = N;
+      jumpModalInput.value = "";
+      jumpModalInput.placeholder = String(currentNavIndex + 1);
+      jumpModal.classList.add("is-open");
+      jumpModal.setAttribute("aria-hidden", "false");
+      // 等弹窗动画起势后聚焦（用 RAF 嵌套确保 focus 不被浏览器忽略）
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        jumpModalInput.focus();
+      }));
+    }
+
+    function closeJumpModal() {
+      if (!isJumpModalOpen()) return;
+      jumpModal.classList.remove("is-open");
+      jumpModal.setAttribute("aria-hidden", "true");
+      jumpModalInput.blur();
+    }
+
+    function commitJumpModal() {
+      const N = navNodes.length;
+      const val = parseInt(jumpModalInput.value, 10);
+      const valid = !isNaN(val) && val >= 1 && val <= N;
+      closeJumpModal();
+      if (valid) {
+        if (activeCard) closeCard();
+        jumpToIndex(val - 1);
+      }
+    }
+
+    navCountEl.addEventListener("click", openJumpModal);
+    jumpModalBackdrop.addEventListener("click", closeJumpModal);
+    // 输入框内的按键直接处理，阻止冒泡到全局 keydown
+    jumpModalInput.addEventListener("keydown", e => {
+      e.stopPropagation();
+      if (e.key === "Enter") { e.preventDefault(); commitJumpModal(); }
+      else if (e.key === "Escape") { e.preventDefault(); closeJumpModal(); }
+    });
+    // 阻止 panel 上的点击穿透到 backdrop
+    document.querySelector(".jump-modal-panel").addEventListener("click", e => e.stopPropagation());
+
     // 通过 ScrollTrigger 将纵向滚动映射为横向时间线移动
     function buildScroll() {
       if (scrollTween) {
@@ -847,7 +1425,8 @@
           pin: true,
           anticipatePin: 1,
           invalidateOnRefresh: true,
-          normalizeScroll: hasTouchScreen ? { allowNestedScroll: true, type: "touch" } : false
+          normalizeScroll: hasTouchScreen ? { allowNestedScroll: true, type: "touch" } : false,
+          onUpdate: self => updateTimelineNav(self.progress)
         }
       });
 
@@ -1269,6 +1848,10 @@
     window.addEventListener("resize", () => {
       layoutCards();
       ScrollTrigger.refresh();
+      // 宽度变了，nav 填充也要重算
+      if (scrollTween && scrollTween.scrollTrigger) {
+        updateTimelineNav(scrollTween.scrollTrigger.progress);
+      }
     });
 
     // ── 移动端触摸：左右滑动驱动时间线 ──
@@ -1327,16 +1910,40 @@
 
     layoutCards();
     buildScroll();
+    updateTimelineNav(0); // 初始激活第一个节点
     renderParallax();
 
-    // ESC 键处理
+    // 键盘导航：Esc 关闭，←/→ 上一张/下一张，Home/End 首尾
     window.addEventListener("keydown", e => {
       if (e.key === "Escape") {
-        if (imageViewer.classList.contains("active")) {
+        // Esc 关闭优先级：跳转弹窗 > 图片查看器 > 卡片详情
+        if (isJumpModalOpen()) {
+          closeJumpModal();
+        } else if (imageViewer.classList.contains("active")) {
           closeImageViewer();
         } else {
           closeCard();
         }
+        return;
+      }
+
+      // 弹窗 / 图片查看器 / 输入框打开时，不响应方向键
+      if (isJumpModalOpen()) return;
+      if (imageViewer.classList.contains("active")) return;
+      const tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target && e.target.isContentEditable)) return;
+
+      // 方向键导航：如果打开了卡片，先关闭再跳转
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Home" || e.key === "End") {
+        e.preventDefault();
+        if (activeCard) closeCard();
+
+        let nextIdx = currentNavIndex;
+        if (e.key === "ArrowLeft")  nextIdx = currentNavIndex - 1;
+        if (e.key === "ArrowRight") nextIdx = currentNavIndex + 1;
+        if (e.key === "Home")       nextIdx = 0;
+        if (e.key === "End")        nextIdx = navNodes.length - 1;
+        jumpToIndex(nextIdx);
       }
     });
   </script>
