@@ -618,6 +618,62 @@
       .jump-modal-input { font-size: 1.3rem; }
     }
 
+    /* ── 樱花花瓣（关闭帖子时爆散用） ── */
+    .sakura-petal {
+      position: fixed;
+      width: 18px;
+      height: 22px;
+      /* 花瓣形状：左上尖、右下圆，像一片心叶 */
+      border-radius: 100% 0 80% 0;
+      background: radial-gradient(
+        ellipse at 30% 30%,
+        rgba(255, 255, 255, 0.95),
+        rgba(255, 196, 214, 0.92) 55%,
+        rgba(255, 138, 168, 0.88) 100%
+      );
+      box-shadow:
+        0 2px 6px rgba(255, 170, 200, 0.35),
+        inset -1px -1px 3px rgba(255, 140, 175, 0.3);
+      pointer-events: none;
+      z-index: 1100;
+      will-change: transform, opacity;
+      transform-origin: 50% 50%;
+    }
+    /* 几种色彩变体 —— 通过 nth-child 风格不好做，改为内联类区分 */
+    .sakura-petal.tone-2 {
+      background: radial-gradient(
+        ellipse at 30% 30%,
+        rgba(255, 245, 250, 0.95),
+        rgba(255, 215, 230, 0.9) 55%,
+        rgba(255, 165, 190, 0.82) 100%
+      );
+    }
+    .sakura-petal.tone-3 {
+      background: radial-gradient(
+        ellipse at 30% 30%,
+        rgba(255, 255, 255, 0.96),
+        rgba(255, 230, 235, 0.92) 50%,
+        rgba(255, 188, 196, 0.86) 100%
+      );
+    }
+    /* 爆散瞬间从球心向外的柔光环 */
+    .sakura-burst {
+      position: fixed;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle,
+        rgba(255, 220, 232, 0.75),
+        rgba(255, 190, 210, 0.4) 50%,
+        rgba(255, 190, 210, 0) 100%
+      );
+      pointer-events: none;
+      z-index: 1099;
+      transform: translate(-50%, -50%) scale(0.3);
+      will-change: transform, opacity;
+    }
+
     @media (max-width: 640px) {
       .timeline-bottom {
         bottom: 0.9rem;
@@ -1530,28 +1586,49 @@
         ease: "power3.out"
       });
 
-      // 右侧内容面板退出动画
+      // 右侧内容面板：跟着圆球化的节奏，先收缩再淡出（提前于掉落完成）
       if (contentPanel) {
         contentPanel.querySelectorAll("video").forEach(v => v.pause());
         gsap.to(contentPanel, {
-          scale: 0.88,
+          scale: 0.7,
           opacity: 0,
-          y: "+=24",
-          duration: 0.32,
-          ease: "power3.in",
+          x: "+=20",
+          duration: 0.35,
+          ease: "power2.in",
           onComplete: () => contentPanel.remove()
         });
       }
 
-      gsap.to(focusCardEl, {
-        x: sourceRect.left - (saved ? saved.rectLeft : sourceRect.left),
-        y: sourceRect.top - (saved ? saved.rectTop : sourceRect.top),
-        scale: 1,
-        duration: 0.6,
-        ease: "expo.out",
+      // ── 关闭动画：圆球化 → 重力掉落 ──
+      // 策略：放弃"回到原位"的轨迹追踪。卡片整体坍缩成一个圆球，受重力坠出屏幕
+      // 用户视线跟着球向下出框，根本不会注意到原卡片在自己位置淡入承接
+
+      const focusRect = focusCardEl.getBoundingClientRect();
+      const focusW = focusRect.width;
+      const focusH = focusRect.height;
+      // 圆球更小：从最短边的 0.4 倍开始（之前是 0.62）
+      const targetSize = Math.min(focusW, focusH) * 0.4;
+      const compensateX = (focusW - targetSize) / 2;
+      const compensateY = (focusH - targetSize) / 2;
+
+      // overflow:hidden + transform-origin 居中，准备做形变
+      gsap.set(focusCardEl, { overflow: "hidden", transformOrigin: "50% 50%" });
+
+      // 全克隆卡片（带文字、meta）时，先把非缩略图部分淡出，避免圆形化时露出文字残角
+      const nonThumbParts = focusCardEl.querySelectorAll(
+        ".project-year, .project-title, .project-day, .project-meta, .project-desc"
+      );
+      if (nonThumbParts.length > 0) {
+        gsap.to(nonThumbParts, {
+          opacity: 0,
+          duration: 0.15,
+          ease: "power2.in"
+        });
+      }
+
+      const tl = gsap.timeline({
         onComplete: () => {
           focusCardEl.remove();
-          card.classList.remove("is-active");
           gsap.set(card, {
             x: saved ? saved.x : 0,
             y: saved ? saved.y : 0,
@@ -1559,10 +1636,158 @@
             rotation: saved ? saved.rotation : 0,
             xPercent: saved ? saved.xPercent : 0,
             yPercent: saved ? saved.yPercent : 0,
-            filter: saved ? saved.filter : "blur(0px)"
+            filter: saved ? saved.filter : "blur(0px)",
+            opacity: 1
           });
+          card.classList.remove("is-active");
         }
       });
+
+      // ① 圆球化 + 缩小 —— width/height 同步到 targetSize，border-radius → 50%
+      //    x/y 平移补偿，保持视觉中心不变（图片保持清晰，缩小节奏更快）
+      tl.to(focusCardEl, {
+        width: targetSize,
+        height: targetSize,
+        borderRadius: "50%",
+        x: `+=${compensateX}`,
+        y: `+=${compensateY}`,
+        duration: 0.26,
+        ease: "power3.out"
+      }, 0);
+
+      // ② 果冻弹跳 wobble —— 落定到爆散之间插入两段不对称形变
+      //    scaleX:1.22, scaleY:0.82 —— 横向被压扁（圆变椭圆）
+      tl.to(focusCardEl, {
+        scaleX: 1.22,
+        scaleY: 0.82,
+        duration: 0.09,
+        ease: "power2.out"
+      }, 0.24);
+
+      // ③ 反弹拉长 —— 纵向胖、横向瘦
+      tl.to(focusCardEl, {
+        scaleX: 0.85,
+        scaleY: 1.15,
+        duration: 0.09,
+        ease: "power2.inOut"
+      }, 0.33);
+
+      // ④ 收回圆形 —— 准备好爆散
+      tl.to(focusCardEl, {
+        scaleX: 1,
+        scaleY: 1,
+        duration: 0.06,
+        ease: "power2.out"
+      }, 0.42);
+
+      // ⑤ 圆球爆散成樱花花瓣
+      //    球本身：迅速塌缩 + 透明，0.18s 内消失
+      //    同时：在球心释放 18 片花瓣 + 一个柔光环，花瓣四散飘飞下坠
+      tl.to(focusCardEl, {
+        scaleX: 0.4,
+        scaleY: 0.4,
+        opacity: 0,
+        duration: 0.18,
+        ease: "power2.in",
+        onStart: () => {
+          const r = focusCardEl.getBoundingClientRect();
+          spawnSakuraBurst(r.left + r.width / 2, r.top + r.height / 2);
+        }
+      }, 0.48);
+
+      // 原卡片在自己原位淡入，跟圆球化并行
+      gsap.set(card, { opacity: 0 });
+      card.classList.remove("is-active");
+      tl.to(card, {
+        opacity: 1,
+        duration: 0.38,
+        ease: "power2.out"
+      }, 0.18);
+    }
+
+    // ── 樱花爆散：在 (cx, cy) 释放一团花瓣 + 一个柔光环 ──
+    function spawnSakuraBurst(cx, cy) {
+      // ① 柔光环：从一点放大并淡出，强化"爆散瞬间"的视觉锚点
+      const burst = document.createElement("div");
+      burst.className = "sakura-burst";
+      burst.style.left = cx + "px";
+      burst.style.top = cy + "px";
+      document.body.appendChild(burst);
+      gsap.fromTo(burst,
+        { scale: 0.3, opacity: 0.9 },
+        {
+          scale: 3.2,
+          opacity: 0,
+          duration: 0.7,
+          ease: "power2.out",
+          onComplete: () => burst.remove()
+        }
+      );
+
+      // ② 18 片花瓣：随机角度爆出 → 随机方向飘飞下坠 → 旋转 → 淡出
+      const NUM_PETALS = 18;
+      const tones = ["", "tone-2", "tone-3"];
+      for (let i = 0; i < NUM_PETALS; i++) {
+        const petal = document.createElement("div");
+        petal.className = "sakura-petal";
+        const tone = tones[Math.floor(Math.random() * tones.length)];
+        if (tone) petal.classList.add(tone);
+
+        // 大小略有差异，更自然
+        const size = 14 + Math.random() * 10;
+        petal.style.width = size + "px";
+        petal.style.height = (size * 1.22) + "px";
+        petal.style.left = (cx - size / 2) + "px";
+        petal.style.top = (cy - size * 0.6) + "px";
+
+        // 初始就给一个随机的自身旋转，避免所有花瓣一样朝向
+        const initRot = Math.random() * 360;
+
+        document.body.appendChild(petal);
+
+        // 爆散角度：基本环形展开 + 抖动；初始爆发距离 60~120px
+        const angle = (i / NUM_PETALS) * Math.PI * 2 + (Math.random() - 0.5) * 0.7;
+        const burstDist = 60 + Math.random() * 70;
+        // 横向飘移方向 + 振幅（下落过程中左右摇摆的总位移）
+        const drift = (Math.random() < 0.5 ? -1 : 1) * (40 + Math.random() * 90);
+        // 下落总距离 —— 全部飞出屏幕下方
+        const fall = window.innerHeight * 0.55 + Math.random() * 280;
+        // 累计旋转量：自旋多圈，方向随机
+        const totalRot = initRot + (Math.random() < 0.5 ? -1 : 1) * (180 + Math.random() * 540);
+        // 爆发时长 / 飘落时长 都加随机
+        const burstDur = 0.28 + Math.random() * 0.12;
+        const fallDur = 0.95 + Math.random() * 0.55;
+        const finalScale = 0.45 + Math.random() * 0.25;
+
+        // 初始爆发偏向上半圆，让花瓣更多向外、向上一点（更有"炸开"感）
+        const burstX = Math.cos(angle) * burstDist;
+        const burstY = Math.sin(angle) * burstDist * 0.55 - 12;
+
+        // 用 timeline 串两段：先爆出，再飘落
+        const petalTl = gsap.timeline({
+          onComplete: () => petal.remove()
+        });
+
+        gsap.set(petal, { rotation: initRot });
+
+        petalTl.to(petal, {
+          x: burstX,
+          y: burstY,
+          rotation: initRot + (Math.random() - 0.5) * 90,
+          duration: burstDur,
+          ease: "power2.out"
+        });
+
+        petalTl.to(petal, {
+          x: `+=${drift}`,
+          y: `+=${fall}`,
+          rotation: totalRot,
+          scale: finalScale,
+          opacity: 0,
+          duration: fallDur,
+          ease: "power1.in"
+        });
+      }
     }
 
     // 点击卡片时聚焦并居中，再次点击或点遮罩关闭
