@@ -177,18 +177,11 @@
       box-shadow: 0 24px 62px rgba(188, 132, 156, 0.24), 0 0 32px var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.88);
     }
 
-    /* PIXI 水面扭曲 canvas（动态创建，position:fixed 跟随 hover 卡片） */
-    .pixi-ripple-canvas {
-      position: fixed;
-      pointer-events: none;
-      z-index: 25;
-      opacity: 0;
-      transition: opacity 0.35s ease;
-      border-radius: 1rem;
-      will-change: opacity, transform;
-    }
-    .pixi-ripple-canvas.is-active {
-      opacity: 1;
+    /* 卡片 hover 时给整张卡片挂上 SVG 水面扭曲滤镜
+       —— 图片、文字、相框边一起扭曲，整张卡像浸在水里
+       !important 是为了覆盖 GSAP 在 inline style 上写的 filter: blur(0px) */
+    .project-card:hover {
+      filter: url(#water-ripple) !important;
     }
 
     .project-thumb {
@@ -1128,8 +1121,9 @@
       <filter id="water-ripple" x="-5%" y="-5%" width="110%" height="110%">
         <!-- 分形噪声做水波纹理（fractalNoise = 柔和的水面纹理） -->
         <feTurbulence id="ripple-turb" type="fractalNoise" baseFrequency="0.014 0.020" numOctaves="2" seed="2" result="noise"/>
-        <!-- 把图片按噪声 R/G 通道做像素级位移 → 水面扭曲 -->
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="22" xChannelSelector="R" yChannelSelector="G"/>
+        <!-- 把图片按噪声 R/G 通道做像素级位移 → 水面扭曲
+             默认 scale=0（无扭曲），由 JS 在 hover 时缓动到目标值 -->
+        <feDisplacementMap id="ripple-disp" in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G"/>
       </filter>
     </defs>
   </svg>
@@ -1241,130 +1235,61 @@
     const navNodes = Array.from(navNodesEl.querySelectorAll(".timeline-nav-node"));
     navCountEl.innerHTML = `<b><span class="num-cell">1</span></b>`;
 
-    // ── 卡片 hover 水面扭曲（PIXI.js DisplacementFilter） ──
-    // 整个项目共用 1 个 PIXI Application + 1 个 canvas
-    // hover 时 canvas 跟随当前卡片的 .project-thumb 区域，加载对应图片 Sprite + 位移滤镜
-    // 这样最多只有 1 个 WebGL context，避免浏览器上限问题
-    (function setupPixiRipple() {
-      if (typeof PIXI === "undefined") {
-        console.warn("PIXI not loaded, ripple disabled");
-        return;
+    // ── 卡片 hover 水面扭曲（SVG feTurbulence + feDisplacementMap） ──
+    // hover 触发 CSS filter: url(#water-ripple) 接管渲染
+    // JS 做两件事：
+    //   ① GSAP 缓动 feDisplacementMap.scale 0 ↔ TARGET，扭曲幅度由轻到重渐进入场
+    //   ② 持续摆动 baseFrequency，水面在流动而不是静止扭曲
+    (function setupWaterRipple() {
+      const turb = document.getElementById("ripple-turb");
+      const disp = document.getElementById("ripple-disp");
+      if (!turb || !disp) return;
+
+      const TARGET_SCALE = 18;   // hover 时最终扭曲幅度
+      const RAMP_IN = 0.4;       // 进入扭曲耗时（s）—— 由慢到快入水，但快速到位
+      const RAMP_OUT = 0.3;      // 退出扭曲耗时（s）—— 快速归零
+
+      let hoverCount = 0;
+      let rafId = null;
+      let t = 0;
+
+      function flowTick() {
+        if (hoverCount === 0) {
+          rafId = null;
+          return;
+        }
+        // 噪声主频率围绕 0.014/0.020 缓慢摆动 → 水面纹理柔和流动
+        t += 0.012;
+        const fx = (0.014 + Math.sin(t) * 0.005).toFixed(4);
+        const fy = (0.020 + Math.cos(t * 0.8) * 0.005).toFixed(4);
+        turb.setAttribute("baseFrequency", fx + " " + fy);
+        rafId = requestAnimationFrame(flowTick);
       }
 
-      // 程序化生成柔和的噪声位移图（避免依赖外链资源）
-      function makeNoiseTexture(size) {
-        const cvs = document.createElement("canvas");
-        cvs.width = cvs.height = size;
-        const ctx = cvs.getContext("2d");
-        const img = ctx.createImageData(size, size);
-        // 用多层正弦叠加伪造柔和的水波纹理（红=X 位移，绿=Y 位移）
-        for (let y = 0; y < size; y++) {
-          for (let x = 0; x < size; x++) {
-            const i = (y * size + x) * 4;
-            const a1 = Math.sin(x * 0.06) + Math.cos(y * 0.05);
-            const a2 = Math.sin((x + y) * 0.04) + Math.cos((x - y) * 0.05);
-            const a3 = Math.sin(x * 0.02 + y * 0.03);
-            img.data[i + 0] = 128 + 64 * (a1 + a3) / 2;
-            img.data[i + 1] = 128 + 64 * (a2 + a3) / 2;
-            img.data[i + 2] = 128;
-            img.data[i + 3] = 255;
-          }
-        }
-        ctx.putImageData(img, 0, 0);
-        return PIXI.Texture.from(cvs);
-      }
-
-      const app = new PIXI.Application({
-        width: 256, height: 256,
-        backgroundAlpha: 0,
-        antialias: true,
-        resolution: window.devicePixelRatio || 1,
-        autoDensity: true
-      });
-      app.view.classList.add("pixi-ripple-canvas");
-      document.body.appendChild(app.view);
-
-      const noiseTex = makeNoiseTexture(256);
-      noiseTex.baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT;
-      const displacementSprite = new PIXI.Sprite(noiseTex);
-      displacementSprite.texture.baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT;
-      displacementSprite.scale.set(1.5);
-      app.stage.addChild(displacementSprite);
-
-      const displacementFilter = new PIXI.DisplacementFilter(displacementSprite);
-      displacementFilter.padding = 12;
-      displacementFilter.scale.x = 22;   // 横向波纹幅度
-      displacementFilter.scale.y = 22;   // 纵向波纹幅度
-
-      let activeSprite = null;
-      let activeThumbEl = null;
-      let activeImgUrl = null;
-      const spriteCache = new Map(); // 缓存已加载的 Sprite，避免每次 hover 重载图片
-
-      function showOn(thumbEl) {
-        const img = thumbEl.querySelector("img");
-        if (!img) return;
-
-        activeThumbEl = thumbEl;
-        const rect = thumbEl.getBoundingClientRect();
-
-        // 调整 canvas 尺寸跟随当前卡片
-        if (app.renderer.width !== rect.width || app.renderer.height !== rect.height) {
-          app.renderer.resize(rect.width, rect.height);
-        }
-        app.view.style.left = rect.left + "px";
-        app.view.style.top = rect.top + "px";
-
-        // 重用或创建 Sprite
-        const url = img.src;
-        if (activeImgUrl !== url) {
-          if (activeSprite) app.stage.removeChild(activeSprite);
-          if (spriteCache.has(url)) {
-            activeSprite = spriteCache.get(url);
-          } else {
-            activeSprite = PIXI.Sprite.from(url);
-            spriteCache.set(url, activeSprite);
-          }
-          activeSprite.filters = [displacementFilter];
-          app.stage.addChildAt(activeSprite, 0);
-          activeImgUrl = url;
-        }
-        activeSprite.width = rect.width;
-        activeSprite.height = rect.height;
-
-        app.view.classList.add("is-active");
-      }
-
-      function hide() {
-        activeThumbEl = null;
-        app.view.classList.remove("is-active");
-      }
-
-      // 每帧：① 更新位移纹理位置 → 水波流动 ② 同步 canvas 跟随卡片实时位置
-      app.ticker.add(() => {
-        displacementSprite.x = (displacementSprite.x + 0.6) % 256;
-        displacementSprite.y = (displacementSprite.y + 0.4) % 256;
-        if (activeThumbEl) {
-          const rect = activeThumbEl.getBoundingClientRect();
-          app.view.style.left = rect.left + "px";
-          app.view.style.top = rect.top + "px";
-          if (Math.abs(app.renderer.width - rect.width) > 1 ||
-              Math.abs(app.renderer.height - rect.height) > 1) {
-            app.renderer.resize(rect.width, rect.height);
-            if (activeSprite) {
-              activeSprite.width = rect.width;
-              activeSprite.height = rect.height;
-            }
-          }
-        }
-      });
-
-      // 绑定每张卡片的 hover 事件
       document.querySelectorAll(".project-card").forEach(cardEl => {
-        const thumbEl = cardEl.querySelector(".project-thumb");
-        if (!thumbEl) return;
-        cardEl.addEventListener("mouseenter", () => showOn(thumbEl));
-        cardEl.addEventListener("mouseleave", hide);
+        cardEl.addEventListener("mouseenter", () => {
+          hoverCount++;
+          if (!rafId) rafId = requestAnimationFrame(flowTick);
+          // 扭曲幅度缓动入场：从当前值（通常 0，或上次未完成的中间值）→ TARGET
+          // power2.in：起步慢，越往后越快 → "渐渐入水"的感觉
+          gsap.to(disp, {
+            attr: { scale: TARGET_SCALE },
+            duration: RAMP_IN,
+            ease: "power2.in",
+            overwrite: true
+          });
+        });
+        cardEl.addEventListener("mouseleave", () => {
+          hoverCount = Math.max(0, hoverCount - 1);
+          // 扭曲幅度缓动退场：→ 0
+          // power2.out：开始快、收尾慢 → 自然消退
+          gsap.to(disp, {
+            attr: { scale: 0 },
+            duration: RAMP_OUT,
+            ease: "power2.out",
+            overwrite: true
+          });
+        });
       });
     })();
 
