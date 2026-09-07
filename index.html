@@ -1111,6 +1111,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="article-music.css" />
 </head>
 <body>
   <iframe id="liquid-bg-iframe" src="https://bg.hanakos.cc/" style="position: fixed; inset: 0; width: 100%; height: 100%; border: none; z-index: 1;"></iframe>
@@ -1195,6 +1196,7 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js"></script>
   <script src="simple-liquid-bg.js"></script>
+  <script src="article-music.js"></script>
   <script>
 
     // 根据数据渲染卡片到 timeline-track，同时生成底部时间轴节点
@@ -1308,6 +1310,7 @@
     let activeCard = null;
     let activeFocusCard = null;
     let activeContentPanel = null;
+    let activeArticleMusic = null;
     let canParallax = true;
     let pointerX = window.innerWidth * 0.5;
     let pointerY = window.innerHeight * 0.5;
@@ -1641,6 +1644,8 @@
       const contentPanel = activeContentPanel;
       const saved = activeSnapshot;
       const sourceRect = card.getBoundingClientRect();
+      if (activeArticleMusic) activeArticleMusic.destroy();
+      activeArticleMusic = null;
       activeCard = null;
       activeFocusCard = null;
       activeContentPanel = null;
@@ -1954,6 +1959,10 @@
       }
 
       activeFocusCard = focusCardEl;
+      activeArticleMusic = HanakoMusic.createPlayer({
+        host: focusCardEl.querySelector(".project-thumb") || focusCardEl,
+        post: proj
+      });
       focusCardEl.addEventListener("click", e => {
         e.stopPropagation();
         closeCard();

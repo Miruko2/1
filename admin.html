@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>HANAKO · 帖子编辑器</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --pink-bg: #fff5f8;
+    --pink-soft: #ffe1eb;
+    --pink-mid: #ffb8d0;
+    --pink-deep: #d97294;
+    --text: #5a4751;
+    --text-soft: #8b7783;
+    --border: rgba(217, 114, 148, 0.18);
+    --shadow: 0 8px 28px rgba(194, 145, 166, 0.15);
+    --green-soft: #d4f4dd;
+    --green-deep: #4a8a5e;
+    --yellow-soft: #fff3d6;
+    --yellow-deep: #a07a1a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: linear-gradient(160deg, #fff9fb, #ffe9f0 60%, #ffd9e6);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    min-height: 100vh;
+  }
+  h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: 0.02em; }
+
+  /* ── 顶部工具栏 ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.6rem;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+    flex-wrap: wrap;
+  }
+  .topbar h1 {
+    font-size: 1.1rem;
+    color: var(--pink-deep);
+  }
+  .topbar h1 small {
+    font-size: 0.72rem;
+    color: var(--text-soft);
+    font-weight: 400;
+    margin-left: 0.4rem;
+  }
+  .topbar-spacer { flex: 1; }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.42rem 0.95rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+  .status-pill.disconnected {
+    background: var(--yellow-soft);
+    color: var(--yellow-deep);
+    border-color: rgba(160, 122, 26, 0.2);
+  }
+  .status-pill.disconnected:hover { background: #ffe9b3; }
+  .status-pill.connected {
+    background: var(--green-soft);
+    color: var(--green-deep);
+    border-color: rgba(74, 138, 94, 0.18);
+  }
+  .status-pill.connected:hover { background: #c0eccc; }
+  .status-pill.unsupported {
+    background: #fce4e8;
+    color: #c33c66;
+    border-color: rgba(195, 60, 102, 0.2);
+    cursor: default;
+  }
+  .save-state {
+    font-size: 0.76rem;
+    color: var(--text-soft);
+    white-space: nowrap;
+  }
+  .save-state.dirty { color: var(--yellow-deep); }
+  .save-state.saved { color: var(--green-deep); }
+  .save-state.error { color: #c33c66; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--text);
+    font-size: 0.83rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--pink-soft); border-color: var(--pink-mid); }
+  .btn:disabled {
+    opacity: 0.4; cursor: not-allowed;
+    background: rgba(255,255,255,0.5);
+  }
+  .btn:disabled:hover { background: rgba(255,255,255,0.5); border-color: var(--border); }
+  .btn.primary {
+    background: var(--pink-deep);
+    color: white;
+    border-color: var(--pink-deep);
+  }
+  .btn.primary:hover { background: #c9628a; }
+  .btn.primary:disabled { background: var(--pink-deep); }
+  .btn.danger {
+    color: #c33c66;
+    border-color: rgba(195, 60, 102, 0.3);
+  }
+  .btn.danger:hover { background: #fde0e6; }
+  .btn:active { transform: scale(0.96); }
+
+  /* ── 主体布局 ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1rem;
+    padding: 1rem;
+    min-height: calc(100vh - 64px);
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ── 帖子列表 ── */
+  .post-list {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 0.8rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 96px);
+  }
+  .post-list-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.4rem 0.5rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.6rem;
+  }
+  .post-list-header span { font-size: 0.78rem; color: var(--text-soft); }
+  .post-card {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid transparent;
+    border-radius: 0.7rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    margin-bottom: 0.35rem;
+  }
+  .post-card:hover { background: var(--pink-soft); }
+  .post-card.active {
+    background: linear-gradient(135deg, var(--pink-soft), #ffd0e0);
+    border-color: var(--pink-mid);
+    box-shadow: var(--shadow);
+  }
+  .post-card-thumb {
+    width: 44px; height: 44px; border-radius: 0.5rem;
+    background: linear-gradient(135deg, #ffd6e3, #ffaec9);
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .post-card-meta { flex: 1; min-width: 0; }
+  .post-card-title {
+    font-size: 0.88rem; font-weight: 500; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .post-card-year {
+    font-size: 0.7rem;
+    color: var(--text-soft);
+    margin-top: 0.15rem;
+  }
+  .post-card-idx {
+    font-size: 0.65rem;
+    color: var(--text-soft);
+    background: rgba(255, 255, 255, 0.7);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+  }
+  .empty-state {
+    text-align: center;
+    color: var(--text-soft);
+    padding: 2rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  /* ── 编辑表单 ── */
+  .editor {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1.4rem 1.8rem;
+    overflow-y: auto;
+    max-height: calc(100vh - 96px);
+  }
+  .editor-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 1rem;
+    margin-bottom: 1.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .editor-header h2 {
+    font-size: 1rem;
+    color: var(--pink-deep);
+  }
+  .editor-actions { display: flex; gap: 0.5rem; }
+
+  .form-row { margin-bottom: 1.1rem; }
+  .form-row label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-soft);
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.05em;
+  }
+  .form-row input[type="text"],
+  .form-row input[type="number"],
+  .form-row textarea {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 0.55rem;
+    background: rgba(255, 255, 255, 0.85);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .form-row input:focus, .form-row textarea:focus {
+    outline: none;
+    border-color: var(--pink-mid);
+    box-shadow: 0 0 0 3px rgba(255, 184, 208, 0.25);
+  }
+  .form-row textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+    font-size: 0.82rem;
+  }
+  .form-row textarea.content-area {
+    min-height: 320px;
+  }
+  .form-row.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .image-field-row { display: flex; gap: 0.5rem; align-items: center; }
+  .image-field-row input { flex: 1; }
+
+  .depth-wrap { display: flex; align-items: center; gap: 0.8rem; }
+  .depth-wrap input[type="range"] { flex: 1; accent-color: var(--pink-deep); }
+  .depth-val {
+    font-family: ui-monospace, monospace;
+    font-size: 0.85rem;
+    color: var(--pink-deep);
+    min-width: 2.5rem; text-align: right;
+  }
+
+  .quick-insert {
+    display: flex; flex-wrap: wrap; gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+  .quick-insert .btn {
+    padding: 0.32rem 0.65rem;
+    font-size: 0.72rem;
+  }
+
+  .image-preview {
+    margin-top: 0.5rem;
+    width: 100%;
+    max-height: 180px;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    display: none;
+  }
+  .image-preview.visible { display: block; }
+
+  /* ── 代码预览 ── */
+  .code-section {
+    margin-top: 1.4rem;
+    padding-top: 1.2rem;
+    border-top: 1px dashed var(--border);
+  }
+  .code-section h3 {
+    font-size: 0.85rem;
+    color: var(--text-soft);
+    margin-bottom: 0.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .code-output {
+    background: #2d2530;
+    color: #ffd6e3;
+    padding: 1rem 1.2rem;
+    border-radius: 0.55rem;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 1.5rem; left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    padding: 0.7rem 1.4rem;
+    background: var(--pink-deep);
+    color: white;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    box-shadow: 0 12px 28px rgba(217, 114, 148, 0.35);
+    opacity: 0;
+    transition: all 0.35s cubic-bezier(.34, 1.56, .64, 1);
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error { background: #c33c66; box-shadow: 0 12px 28px rgba(195,60,102,0.35); }
+
+  /* ── 图片上传模态框 ── */
+  .image-modal {
+    position: fixed; inset: 0;
+    background: rgba(60, 40, 50, 0.45);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .image-modal.show {
+    display: flex;
+    opacity: 1;
+  }
+  .image-modal-panel {
+    background: linear-gradient(150deg, #fffafc, #ffeef4);
+    border: 1px solid rgba(255,255,255,0.85);
+    border-radius: 1.2rem;
+    padding: 1.8rem 2rem;
+    width: min(560px, 92vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 32px 80px rgba(150, 80, 110, 0.35);
+    transform: scale(0.92) translateY(20px);
+    transition: transform 0.32s cubic-bezier(.34, 1.56, .64, 1);
+  }
+  .image-modal.show .image-modal-panel { transform: scale(1) translateY(0); }
+  .image-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .image-modal-header h3 {
+    color: var(--pink-deep);
+    font-size: 1rem;
+  }
+  .modal-close {
+    background: none; border: none;
+    font-size: 1.3rem;
+    color: var(--text-soft);
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.4rem;
+    transition: background 0.2s ease;
+  }
+  .modal-close:hover { background: rgba(0,0,0,0.05); }
+
+  .drop-zone {
+    border: 2px dashed var(--pink-mid);
+    border-radius: 0.8rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    background: rgba(255, 246, 250, 0.5);
+    color: var(--text-soft);
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    background: var(--pink-soft);
+    border-color: var(--pink-deep);
+    color: var(--pink-deep);
+  }
+  .drop-zone-emoji { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+  .drop-zone-hint { font-size: 0.85rem; line-height: 1.5; }
+  .drop-zone-hint code {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.3rem;
+    font-size: 0.78rem;
+  }
+
+  .img-preview-wrap {
+    margin-top: 1rem;
+    text-align: center;
+  }
+  .img-preview-wrap img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+  }
+  .img-info {
+    font-size: 0.75rem;
+    color: var(--text-soft);
+    margin-top: 0.4rem;
+  }
+
+  .modal-form-row {
+    margin-top: 1rem;
+  }
+  .modal-form-row label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-soft);
+    margin-bottom: 0.35rem;
+  }
+  .modal-form-row input[type="text"] {
+    width: 100%;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: white;
+    font-size: 0.9rem;
+    font-family: inherit;
+  }
+
+  .modal-radios {
+    display: flex; flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.6rem;
+  }
+  .modal-radios label {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.4rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.18s ease;
+  }
+  .modal-radios label:hover { background: rgba(255,255,255,0.6); }
+
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 0.6rem;
+    margin-top: 1.3rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--border);
+  }
+
+  /* 全屏拖入图片的"幽灵"高亮 */
+  .global-dropzone-hint {
+    position: fixed; inset: 0;
+    background: rgba(255, 184, 208, 0.25);
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+    z-index: 150;
+    display: none;
+    align-items: center; justify-content: center;
+    font-size: 2rem;
+    color: var(--pink-deep);
+  }
+  .global-dropzone-hint.show { display: flex; }
+  .music-editor { padding: 1.1rem; border: 1px solid var(--border); border-radius: 0.8rem; background: linear-gradient(135deg, #fff7fb, #fff); }
+  .music-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 1rem; }
+  .music-editor-heading h3 { font-size: 0.92rem; color: var(--pink-deep); }
+  .music-editor-heading span, .music-editor-hint, .music-editor-help { font-size: 0.74rem; color: var(--text-soft); line-height: 1.65; }
+  .music-editor-hint { margin: 0.55rem 0; overflow-wrap: anywhere; }
+  .music-editor-hint.is-error { color: #bc365b; }
+  .music-editor-help { margin: 0.65rem 0 0; opacity: 0.8; }
+  .music-editor-options { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(120px, 1fr) auto; align-items: center; gap: 1rem; margin: 0.85rem 0; }
+  .music-editor [hidden] { display: none !important; }
+  .music-editor input[type="range"] { width: 100%; accent-color: var(--pink-deep); }
+  .music-editor .music-loop-label { display: flex; align-items: center; gap: 0.4rem; margin: 1rem 0 0; white-space: nowrap; }
+  .music-editor input[type="checkbox"] { accent-color: var(--pink-deep); }
+  .music-editor audio { display: block; width: 100%; height: 38px; margin-top: 0.5rem; }
+</style>
+  <script src="article-music.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>🌸 HANAKO 编辑器 <small>给"花子的涩涩日记"管帖子</small></h1>
+  <div class="topbar-spacer"></div>
+  <div id="statusPill" class="status-pill disconnected">🔌 未连接，点此连接项目目录</div>
+  <button type="button" class="btn" id="reloadBtn" disabled>🔄 重新加载</button>
+  <button type="button" class="btn" id="newPostBtn" disabled>➕ 新帖子</button>
+  <span id="saveState" class="save-state" role="status" aria-live="polite">尚未连接目录</span>
+  <button type="button" class="btn primary" id="saveBtn" disabled>💾 保存到 projects.js</button>
+</header>
+
+<div class="layout">
+  <aside class="post-list" id="postList">
+    <div class="post-list-header">
+      <h3 style="font-size: 0.85rem; color: var(--text);">帖子列表</h3>
+      <span id="postCount">0 帖</span>
+    </div>
+    <div id="postListBody">
+      <div class="empty-state">
+        还没连接项目目录<br>
+        点上方 <strong>🔌 未连接</strong> 选择文件夹
+      </div>
+    </div>
+  </aside>
+
+  <main class="editor">
+    <div class="editor-header">
+      <h2 id="editorTitle">连接目录后即可编辑</h2>
+      <div class="editor-actions">
+        <button type="button" class="btn danger" id="deleteBtn" style="display:none">🗑 删除</button>
+      </div>
+    </div>
+
+    <form id="editForm">
+      <div class="form-row row-2">
+        <div>
+          <label>年份 / 日期 (year)</label>
+          <input type="text" id="f_year" placeholder="2026-3-18">
+        </div>
+        <div>
+          <label>副标签 (tag)</label>
+          <input type="text" id="f_tag" placeholder="涩图 / DAY3 / 日常 ...">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>标题 (title)</label>
+        <input type="text" id="f_title" placeholder="终于自己搭建了魔法">
+      </div>
+
+      <div class="form-row">
+        <label>简介 (desc)</label>
+        <textarea id="f_desc" rows="2" placeholder="一两句话概括"></textarea>
+      </div>
+
+      <div class="form-row row-2">
+        <div>
+          <label>视差深度 (depth) — 0.4 ~ 1.6</label>
+          <div class="depth-wrap">
+            <input type="range" id="f_depth" min="0.4" max="1.6" step="0.05" value="0.8">
+            <span class="depth-val" id="depthVal">0.80</span>
+          </div>
+        </div>
+        <div>
+          <label>封面图路径 (image)</label>
+          <div class="image-field-row">
+            <input type="text" id="f_image" placeholder="img/neko.jpg">
+            <button type="button" class="btn" id="addImageBtn">📷 添加图片</button>
+          </div>
+        </div>
+      </div>
+
+      <img class="image-preview" id="imagePreview" alt="封面预览">
+
+      <section class="music-editor form-row" aria-labelledby="musicEditorTitle">
+        <div class="music-editor-heading">
+          <h3 id="musicEditorTitle">♫ 文章音乐</h3>
+          <span>打开文章时自动播放</span>
+        </div>
+        <label for="f_music">音频文件、音乐直链或网易云歌曲</label>
+        <div class="image-field-row">
+          <input type="text" id="f_music" placeholder="粘贴网易云歌曲链接 / 输入歌曲 ID / HTTPS 音频直链" spellcheck="false">
+          <button type="button" class="btn" id="importMusicBtn">＋ 选择音频</button>
+          <button type="button" class="btn" id="removeMusicBtn">移除</button>
+        </div>
+        <input type="file" id="musicFileInput" accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,.webm,audio/*" hidden>
+        <p class="music-editor-hint" id="musicHint" role="status" aria-live="polite">未添加音乐，这篇文章不会显示音频条。</p>
+        <div class="music-editor-options" id="musicOptions" hidden>
+          <div>
+            <label for="f_musicTitle">显示名称（可编辑）</label>
+            <input type="text" id="f_musicTitle" placeholder="网易云歌曲会自动填入曲名 · 歌手">
+          </div>
+          <div>
+            <label for="f_musicVolume">默认音量 <output id="musicVolumeValue">60%</output></label>
+            <input type="range" id="f_musicVolume" min="0" max="100" step="1" value="60">
+          </div>
+          <label class="music-loop-label"><input type="checkbox" id="f_musicLoop" checked> 循环播放</label>
+        </div>
+        <audio id="musicPreview" controls preload="metadata" hidden aria-label="文章音乐试听"></audio>
+        <p class="music-editor-help">支持本地音频、HTTPS 音频直链、网易云歌曲页面链接和纯歌曲 ID。网易云短链接请改用歌曲页面链接。本地文件不超过 64 MB；修改后点击上方“保存”。</p>
+      </section>
+
+      <div class="form-row">
+        <label>详细内容 (content)</label>
+        <div class="quick-insert">
+          <button type="button" class="btn" data-insert="<h3>小标题</h3>">＋ 小标题</button>
+          <button type="button" class="btn" data-insert="<hr>">＋ 分割线</button>
+          <button type="button" class="btn" id="insertImageBtn">＋ 内容图片</button>
+          <button type="button" class="btn" data-insert='<video src="video/xxx.mp4" muted playsinline loop></video>'>＋ 视频</button>
+          <button type="button" class="btn" data-insert="<ul>\n  <li>列表项</li>\n</ul>">＋ 列表</button>
+          <button type="button" class="btn" data-insert="<strong>加粗</strong>">＋ 加粗</button>
+        </div>
+        <textarea id="f_content" class="content-area" placeholder="支持换行 + HTML 标签"></textarea>
+      </div>
+
+      <div class="code-section">
+        <h3>
+          生成的代码（实时预览）
+          <button type="button" class="btn" id="copyEntryBtn" style="font-size: 0.72rem; padding: 0.3rem 0.7rem;">复制此帖</button>
+        </h3>
+        <pre class="code-output" id="codeOutput">— 表单为空 —</pre>
+      </div>
+    </form>
+  </main>
+</div>
+
+<!-- ── 图片添加模态框 ── -->
+<div class="image-modal" id="imageModal">
+  <div class="image-modal-panel">
+    <div class="image-modal-header">
+      <h3>📷 添加图片</h3>
+      <button type="button" class="modal-close" id="modalClose">✕</button>
+    </div>
+
+    <div class="drop-zone" id="dropZone">
+      <span class="drop-zone-emoji">🖼</span>
+      <div class="drop-zone-hint">
+        <strong>粘贴</strong> <code>Ctrl+V</code> · <strong>拖入</strong> · 或 <u>点击选择文件</u>
+      </div>
+      <input type="file" id="modalFileInput" accept="image/*" hidden>
+    </div>
+
+    <div class="img-preview-wrap" id="imgPreviewWrap" style="display:none">
+      <img id="modalImagePreview" alt="">
+      <div class="img-info" id="imgInfo"></div>
+    </div>
+
+    <div class="modal-form-row" id="filenameRow" style="display:none">
+      <label>文件名 (保存到 img/ 目录)</label>
+      <input type="text" id="imgFilename" placeholder="cute-cat.jpg">
+    </div>
+
+    <div class="modal-radios" id="actionRadios" style="display:none">
+      <label>
+        <input type="radio" name="imgAction" value="insert" checked>
+        保存后插入到 content（推荐写帖子时用）
+      </label>
+      <label>
+        <input type="radio" name="imgAction" value="cover">
+        保存后设为封面图 (image 字段)
+      </label>
+      <label>
+        <input type="radio" name="imgAction" value="none">
+        只保存，不自动插入
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn" id="modalCancel">取消</button>
+      <button type="button" class="btn primary" id="modalSave" disabled>💾 保存到 img/</button>
+    </div>
+  </div>
+</div>
+
+<div class="global-dropzone-hint" id="globalDropHint">
+  🖼 松手把图片放入此处
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================================================
+   HANAKO 帖子编辑器（File System Access API 版）
+   功能：
+     ① 一次性连接项目目录 → 自动读 projects.js
+     ② 保存 → 直接覆盖本地 projects.js（不再下载）
+     ③ 添加图片 → 粘贴/拖入/选择 → 自动写入 img/ 目录
+   要求：Chrome / Edge / Opera（Firefox/Safari 不支持 FSA）
+=========================================================== */
+
+const FILE_HEADER = `// ============================================================
+// 卡片数据 —— 只需编辑这个文件来增删改卡片
+//
+// 每张卡片的字段：
+//   year   : 年份字符串，显示在卡片上
+//   tag    : 副标签（年份后面那行小字）
+//   title  : 卡片标题
+//   desc   : 卡片未打开时显示的一两句简介（纯文字）
+//   depth  : 视差深度，0.4~1.6，越大鼠标移动时偏移越多
+//   image  : 封面图路径，如 "img/neko.jpg"；留空 "" 则显示渐变占位
+//   music  : 可选配乐，如 "audio/song.mp3"、HTTPS 音频直链或 "netease:歌曲ID"
+//   musicTitle: 曲名（可选）；musicVolume: 音量 0~1；musicLoop: 是否循环
+//   content: 卡片打开后右侧面板显示的完整内容（可选）
+//            支持直接换行（会自动断段）和以下 HTML 标签：
+//              <h3>小标题</h3>
+//              <p>段落</p>
+//              <ul><li>列表项</li></ul>
+//              <strong>加粗</strong>  <em>斜体</em>
+//              <hr>  分割线
+//              <img src="img/xxx.jpg">  图片（自动缩放+圆角+模糊动画）
+//              <video src="video/xxx.mp4" muted playsinline loop></video>  视频（自动播放/暂停+模糊动画）
+//            不填 content 时，打开卡片只显示左侧原卡片
+// ============================================================
+
+const PROJECTS = `;
+
+const $ = id => document.getElementById(id);
+
+// ── 状态 ──
+let posts = [];
+let currentIdx = -1;
+let dirHandle = null;       // 项目根目录
+let projectsHandle = null;  // projects.js 文件句柄
+let imgDirHandle = null;    // img/ 目录句柄
+let isDirty = false;
+let saveInProgress = false;
+let musicImportInProgress = false;
+let musicPreviewRevision = 0;
+let musicPreviewObjectUrl = null;
+let musicPreviewTimer = null;
+let musicPreviewSources = [];
+let musicPreviewSourceIndex = 0;
+let musicPreviewSwitching = false;
+let musicPreviewWantsPlayback = false;
+let musicMetadataController = null;
+let draftTimer = null;
+const DESKTOP_BRIDGE = window.__HANAKO_DESKTOP__ || null;
+const DESKTOP_MODE = !!DESKTOP_BRIDGE;
+const FSA_SUPPORTED = DESKTOP_MODE || !!window.showDirectoryPicker;
+const DRAFT_KEY_PREFIX = "hanako-admin-draft-v2:";
+
+// ── 字符串转义 ──
+function escForQuote(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+function escForBacktick(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+
+// ── IndexedDB 存储目录句柄（让浏览器记住选过的文件夹） ──
+const DB_NAME = "hanako-admin", STORE = "handles";
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSet(key, val) {
+  const db = await openDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(val, key);
+    tx.oncomplete = res;
+    tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(key) {
+  const db = await openDb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readonly");
+    const r = tx.objectStore(STORE).get(key);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+
+// ── 权限验证 ──
+async function verifyPermission(handle, write = true) {
+  const opts = { mode: write ? "readwrite" : "read" };
+  if ((await handle.queryPermission(opts)) === "granted") return true;
+  if ((await handle.requestPermission(opts)) === "granted") return true;
+  return false;
+}
+
+// ── projects.js 解析 ──
+function parseProjectsJs(text) {
+  const source = String(text);
+  const declaration = source.match(/\bconst\s+PROJECTS\s*=/);
+  if (!declaration) throw new Error("没找到 const PROJECTS = [...");
+
+  // projects.js 是一个受限的数据文件。这里主动解析数据，不通过 eval / Function
+  // 执行它，既兼容桌面版的严格 CSP，也避免意外运行文件中的脚本。
+  let pos = declaration.index + declaration[0].length;
+
+  function fail(message) {
+    const before = source.slice(0, pos);
+    const line = before.split(/\r\n|\r|\n/).length;
+    const lastLineBreak = Math.max(before.lastIndexOf("\n"), before.lastIndexOf("\r"));
+    const column = pos - lastLineBreak;
+    throw new Error(`${message}（第 ${line} 行，第 ${column} 列）`);
+  }
+
+  function skipIgnored() {
+    while (pos < source.length) {
+      if (/\s/.test(source[pos])) {
+        pos++;
+        continue;
+      }
+      if (source[pos] === "/" && source[pos + 1] === "/") {
+        pos += 2;
+        while (pos < source.length && source[pos] !== "\n" && source[pos] !== "\r") pos++;
+        continue;
+      }
+      if (source[pos] === "/" && source[pos + 1] === "*") {
+        pos += 2;
+        const end = source.indexOf("*/", pos);
+        if (end === -1) fail("块注释没有结束");
+        pos = end + 2;
+        continue;
+      }
+      break;
+    }
+  }
+
+  function readHexDigits(count, label) {
+    const digits = source.slice(pos, pos + count);
+    if (digits.length !== count || !new RegExp(`^[0-9a-fA-F]{${count}}$`).test(digits)) {
+      fail(`${label}转义格式不正确`);
+    }
+    pos += count;
+    return parseInt(digits, 16);
+  }
+
+  function parseString() {
+    const quote = source[pos++];
+    let value = "";
+
+    while (pos < source.length) {
+      const ch = source[pos++];
+      if (ch === quote) return value;
+      if (ch === "\n" || ch === "\r") {
+        if (quote !== "`") fail("普通字符串不能直接换行");
+        value += ch;
+        continue;
+      }
+      if (ch !== "\\") {
+        value += ch;
+        continue;
+      }
+      if (pos >= source.length) fail("字符串转义没有结束");
+
+      const escaped = source[pos++];
+      if (escaped === "\n") continue;
+      if (escaped === "\r") {
+        if (source[pos] === "\n") pos++;
+        continue;
+      }
+
+      switch (escaped) {
+        case "b": value += "\b"; break;
+        case "f": value += "\f"; break;
+        case "n": value += "\n"; break;
+        case "r": value += "\r"; break;
+        case "t": value += "\t"; break;
+        case "v": value += "\v"; break;
+        case "0":
+          if (/[0-9]/.test(source[pos] || "")) fail("不支持八进制字符串转义");
+          value += "\0";
+          break;
+        case "x":
+          value += String.fromCharCode(readHexDigits(2, "十六进制"));
+          break;
+        case "u":
+          if (source[pos] === "{") {
+            pos++;
+            const end = source.indexOf("}", pos);
+            if (end === -1) fail("Unicode 转义没有结束");
+            const digits = source.slice(pos, end);
+            if (!/^[0-9a-fA-F]{1,6}$/.test(digits)) fail("Unicode 转义格式不正确");
+            const codePoint = parseInt(digits, 16);
+            if (codePoint > 0x10ffff) fail("Unicode 码点超出范围");
+            value += String.fromCodePoint(codePoint);
+            pos = end + 1;
+          } else {
+            value += String.fromCharCode(readHexDigits(4, "Unicode"));
+          }
+          break;
+        default:
+          // 包括 \\, \"、\'、\` 和保存器生成的 \${。
+          value += escaped;
+      }
+    }
+
+    fail("字符串没有结束");
+  }
+
+  function parseIdentifier() {
+    const match = /^[A-Za-z_$][A-Za-z0-9_$]*/.exec(source.slice(pos));
+    if (!match) fail("属性名格式不正确");
+    pos += match[0].length;
+    return match[0];
+  }
+
+  function parseNumber() {
+    const match = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/.exec(source.slice(pos));
+    if (!match) fail("数字格式不正确");
+    pos += match[0].length;
+    const value = Number(match[0]);
+    if (!Number.isFinite(value)) fail("数字超出可用范围");
+    return value;
+  }
+
+  function parseArray() {
+    const values = [];
+    pos++;
+    skipIgnored();
+    if (source[pos] === "]") {
+      pos++;
+      return values;
+    }
+
+    while (pos < source.length) {
+      values.push(parseValue());
+      skipIgnored();
+      if (source[pos] === ",") {
+        pos++;
+        skipIgnored();
+        if (source[pos] === "]") {
+          pos++;
+          return values;
+        }
+        continue;
+      }
+      if (source[pos] === "]") {
+        pos++;
+        return values;
+      }
+      fail("文章列表中应为逗号或 ]");
+    }
+
+    fail("文章列表没有结束");
+  }
+
+  function parseObject() {
+    const value = Object.create(null);
+    pos++;
+    skipIgnored();
+    if (source[pos] === "}") {
+      pos++;
+      return value;
+    }
+
+    while (pos < source.length) {
+      skipIgnored();
+      const key = source[pos] === '"' || source[pos] === "'" || source[pos] === "`"
+        ? parseString()
+        : parseIdentifier();
+      skipIgnored();
+      if (source[pos] !== ":") fail(`属性 ${key} 后面缺少冒号`);
+      pos++;
+      value[key] = parseValue();
+      skipIgnored();
+      if (source[pos] === ",") {
+        pos++;
+        skipIgnored();
+        if (source[pos] === "}") {
+          pos++;
+          return value;
+        }
+        continue;
+      }
+      if (source[pos] === "}") {
+        pos++;
+        return value;
+      }
+      fail(`属性 ${key} 后面应为逗号或 }`);
+    }
+
+    fail("文章对象没有结束");
+  }
+
+  function parseValue() {
+    skipIgnored();
+    const ch = source[pos];
+    if (ch === "[") return parseArray();
+    if (ch === "{") return parseObject();
+    if (ch === '"' || ch === "'" || ch === "`") return parseString();
+    if (ch === "+" || ch === "-" || ch === "." || /[0-9]/.test(ch || "")) return parseNumber();
+    if (/[A-Za-z_$]/.test(ch || "")) {
+      const identifier = parseIdentifier();
+      if (identifier === "true") return true;
+      if (identifier === "false") return false;
+      if (identifier === "null") return null;
+      fail(`不支持可执行表达式或标识符 ${identifier}`);
+    }
+    fail("遇到无法识别的数据");
+  }
+
+  skipIgnored();
+  if (source[pos] !== "[") fail("PROJECTS 后面不是文章数组");
+  const parsed = parseArray();
+  skipIgnored();
+  if (source[pos] === ";") {
+    pos++;
+    skipIgnored();
+  }
+  if (pos !== source.length) fail("文章数组后面还有无法识别的内容");
+
+  return parsed.map((post, index) => {
+    if (!post || typeof post !== "object" || Array.isArray(post)) {
+      throw new Error(`第 ${index + 1} 篇文章不是对象`);
+    }
+    const toText = (value, field) => {
+      if (value == null) return "";
+      if (!["string", "number", "boolean"].includes(typeof value)) {
+        throw new Error(`第 ${index + 1} 篇文章的 ${field} 字段格式不正确`);
+      }
+      return String(value);
+    };
+    const depth = post.depth == null || post.depth === "" ? 0.8 : Number(post.depth);
+    if (!Number.isFinite(depth)) throw new Error(`第 ${index + 1} 篇文章的 depth 不是有效数字`);
+    return {
+      year: toText(post.year, "year"),
+      tag: toText(post.tag, "tag"),
+      title: toText(post.title, "title"),
+      desc: toText(post.desc, "desc"),
+      depth,
+      image: toText(post.image, "image"),
+      music: toText(post.music, "music"),
+      musicTitle: toText(post.musicTitle, "musicTitle"),
+      musicVolume: HanakoMusic.settings(post).volume,
+      musicLoop: HanakoMusic.settings(post).loop,
+      content: toText(post.content, "content")
+    };
+  });
+}
+
+function postToCode(p, indent = "  ") {
+  const lines = [indent + "{"];
+  lines.push(`${indent}  year:  "${escForQuote(p.year ?? "")}",`);
+  lines.push(`${indent}  tag:   "${escForQuote(p.tag ?? "")}",`);
+  lines.push(`${indent}  title: "${escForQuote(p.title ?? "")}",`);
+  lines.push(`${indent}  desc:  "${escForQuote(p.desc ?? "")}",`);
+  lines.push(`${indent}  depth: ${p.depth ?? 0.8},`);
+  lines.push(`${indent}  image: "${escForQuote(p.image ?? "")}",`);
+  if (p.music && p.music.trim()) {
+    const music = HanakoMusic.settings(p);
+    lines.push(`${indent}  music: ${JSON.stringify(music.source)},`);
+    lines.push(`${indent}  musicTitle: ${JSON.stringify(p.musicTitle || "")},`);
+    lines.push(`${indent}  musicVolume: ${music.volume},`);
+    lines.push(`${indent}  musicLoop: ${music.loop},`);
+  }
+  if (p.content && p.content.trim()) {
+    lines.push(`${indent}  content: \`${escForBacktick(p.content)}\``);
+  }
+  lines.push(indent + "}");
+  return lines.join("\n");
+}
+
+function postsToFullJs() {
+  if (!posts.length) return FILE_HEADER + "[];\n";
+  const body = posts.map(p => postToCode(p)).join(",\n");
+  return FILE_HEADER + "[\n" + body + "\n];\n";
+}
+
+// ── 编辑状态 / 本地草稿保护 ──
+function setSaveState(message, type = "") {
+  const el = $("saveState");
+  el.textContent = message;
+  el.className = "save-state" + (type ? " " + type : "");
+}
+
+function hasMeaningfulFormData() {
+  return ["f_year", "f_tag", "f_title", "f_desc", "f_image", "f_content", "f_music"]
+    .some(id => $(id).value.trim() !== "");
+}
+
+function draftStorageKey() {
+  return DRAFT_KEY_PREFIX + (dirHandle?.name || "unknown");
+}
+
+function writeDraftBackup() {
+  draftTimer = null;
+  if (!dirHandle || !isDirty) return false;
+  try {
+    localStorage.setItem(draftStorageKey(), JSON.stringify({
+      version: 2,
+      directoryName: dirHandle.name,
+      posts,
+      currentIdx,
+      detachedPost: currentIdx < 0 && hasMeaningfulFormData() ? readForm() : null,
+      updatedAt: Date.now()
+    }));
+    setSaveState("● 有未保存更改（草稿已自动备份）", "dirty");
+    return true;
+  } catch (e) {
+    console.warn("本地草稿备份失败", e);
+    setSaveState("● 有未保存更改（草稿备份失败，请尽快保存）", "error");
+    return false;
+  }
+}
+
+function scheduleDraftBackup() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(writeDraftBackup, 250);
+}
+
+function clearDraftBackup() {
+  clearTimeout(draftTimer);
+  draftTimer = null;
+  if (!dirHandle) return;
+  try {
+    localStorage.removeItem(draftStorageKey());
+  } catch (e) {
+    console.warn("清理本地草稿失败", e);
+  }
+}
+
+function markDirty() {
+  isDirty = true;
+  setSaveState("● 有未保存更改（正在自动备份）", "dirty");
+  scheduleDraftBackup();
+  updateActionState();
+}
+
+function markClean(message) {
+  isDirty = false;
+  clearDraftBackup();
+  setSaveState(message, "saved");
+  updateActionState();
+}
+
+function updateActionState() {
+  const connected = !!dirHandle && !!projectsHandle;
+  const hasCurrentPost = currentIdx >= 0 && currentIdx < posts.length;
+  const busy = saveInProgress || musicImportInProgress;
+
+  $("reloadBtn").disabled = !connected || busy;
+  $("newPostBtn").disabled = !connected || busy;
+  $("saveBtn").disabled = !connected || busy || (!hasCurrentPost && !isDirty);
+  $("deleteBtn").disabled = !hasCurrentPost || busy;
+  $("addImageBtn").disabled = !connected || !hasCurrentPost || saveInProgress;
+  $("insertImageBtn").disabled = !connected || !hasCurrentPost || saveInProgress;
+
+  document.querySelectorAll("#editForm input, #editForm textarea, #editForm button")
+    .forEach(control => { control.disabled = !hasCurrentPost || busy; });
+  $("removeMusicBtn").disabled = !hasCurrentPost || busy || !$("f_music").value.trim();
+}
+
+function restoreDraftIfAvailable() {
+  let draft;
+  try {
+    const raw = localStorage.getItem(draftStorageKey());
+    if (!raw) return false;
+    draft = JSON.parse(raw);
+  } catch (e) {
+    console.warn("读取本地草稿失败", e);
+    return false;
+  }
+
+  if (!draft || draft.directoryName !== dirHandle.name || !Array.isArray(draft.posts)) {
+    return false;
+  }
+
+  if (JSON.stringify(draft.posts) === JSON.stringify(posts) && !draft.detachedPost) {
+    clearDraftBackup();
+    return false;
+  }
+
+  const time = draft.updatedAt ? new Date(draft.updatedAt).toLocaleString() : "上次编辑时";
+  const title = draft.detachedPost?.title || draft.posts[draft.currentIdx]?.title || "未命名帖子";
+  if (!confirm(`发现 ${time} 自动备份的未保存草稿「${title}」，要恢复吗？`)) {
+    clearDraftBackup();
+    return false;
+  }
+
+  posts = draft.posts;
+  if (draft.detachedPost) posts.push(draft.detachedPost);
+  currentIdx = Number.isInteger(draft.currentIdx) && draft.currentIdx >= 0 && draft.currentIdx < posts.length
+    ? draft.currentIdx
+    : posts.length - 1;
+
+  if (currentIdx >= 0) selectPost(currentIdx);
+  else clearForm();
+  renderList();
+  isDirty = true;
+  setSaveState("● 已恢复草稿，请保存到 projects.js", "dirty");
+  updateActionState();
+  showToast("✓ 已恢复未保存草稿，请点击保存");
+  return true;
+}
+
+// ── 连接项目目录（核心入口） ──
+async function connectDirectory(viaRestore = false) {
+  if (musicImportInProgress || saveInProgress) return;
+  if (!FSA_SUPPORTED) {
+    showToast("浏览器不支持 File System Access API，请用 Chrome/Edge", true);
+    return;
+  }
+  if (!viaRestore && isDirty) {
+    if (!confirm("当前有未保存更改。仍要切换项目目录吗？草稿会保留在本浏览器中。")) return;
+    if (!writeDraftBackup() && !confirm("浏览器未能备份草稿，继续切换会丢失当前更改。确定继续吗？")) return;
+  }
+  try {
+    let nextDirHandle;
+    if (viaRestore) {
+      const saved = await idbGet("dirHandle");
+      if (!saved) return;
+      if (!(await verifyPermission(saved))) return;
+      nextDirHandle = saved;
+    } else {
+      nextDirHandle = await window.showDirectoryPicker({ mode: "readwrite", id: "hanako-project" });
+      if (!(await verifyPermission(nextDirHandle))) {
+        showToast("没有获得目录的写入权限", true);
+        return;
+      }
+    }
+
+    // 取 projects.js 句柄
+    let nextProjectsHandle;
+    try {
+      nextProjectsHandle = await nextDirHandle.getFileHandle("projects.js", { create: false });
+    } catch (e) {
+      showToast("此目录里没找到 projects.js", true);
+      return;
+    }
+
+    // 取 img/ 目录（不存在就创建）
+    const nextImgDirHandle = await nextDirHandle.getDirectoryHandle("img", { create: true });
+
+    dirHandle = nextDirHandle;
+    projectsHandle = nextProjectsHandle;
+    imgDirHandle = nextImgDirHandle;
+    if (!DESKTOP_MODE) await idbSet("dirHandle", dirHandle);
+
+    updateStatusUI();
+    await loadProjectsFile({ restoreDraft: true });
+  } catch (e) {
+    if (e.name === "AbortError") return; // 用户取消
+    console.error(e);
+    showToast("连接失败：" + e.message, true);
+  }
+}
+
+// ── 从 projects.js 文件加载到内存 ──
+async function loadProjectsFile({ restoreDraft = false } = {}) {
+  if (!projectsHandle) return;
+  try {
+    const file = await projectsHandle.getFile();
+    const text = await file.text();
+    posts = parseProjectsJs(text);
+    currentIdx = -1;
+    isDirty = false;
+    clearForm();
+    renderList();
+    setSaveState(`已读取 projects.js · ${posts.length} 帖`);
+    updateActionState();
+    if (!restoreDraft || !restoreDraftIfAvailable()) {
+      showToast(`✓ 已加载 ${posts.length} 帖`);
+    }
+    return true;
+  } catch (e) {
+    console.error(e);
+    setSaveState("读取 projects.js 失败", "error");
+    showToast("读取 projects.js 失败：" + e.message, true);
+    return false;
+  }
+}
+
+// ── 保存内存 → 覆盖 projects.js ──
+async function saveProjectsFile() {
+  if (!dirHandle || !projectsHandle) {
+    showToast("还未连接目录", true);
+    return;
+  }
+  if (saveInProgress || musicImportInProgress) return;
+
+  // 兼容旧页面留下的“未绑定表单”：只要表单有内容，就自动作为新帖子加入。
+  if (currentIdx < 0 && hasMeaningfulFormData()) {
+    posts.push(readForm());
+    currentIdx = posts.length - 1;
+    renderList();
+    markDirty();
+  } else if (currentIdx >= 0) {
+    syncFormToPost();
+  } else if (!isDirty) {
+    showToast("请先选择一个帖子，或点击“新帖子”", true);
+    return;
+  }
+
+  saveInProgress = true;
+  $("saveBtn").textContent = "正在保存…";
+  setSaveState("正在写入并核验 projects.js…");
+  updateActionState();
+  let writable = null;
+  try {
+    if (!(await verifyPermission(dirHandle))) {
+      throw new Error("目录写入权限已失效，请重新连接目录");
+    }
+
+    // 每次保存都重新获取句柄，避免文件被外部工具替换后仍写向旧句柄。
+    projectsHandle = await dirHandle.getFileHandle("projects.js", { create: false });
+    posts.forEach((post, index) => {
+      try { post.music = HanakoMusic.validateSource(post.music); }
+      catch (error) { throw new Error(`第 ${index + 1} 篇文章：${error.message}`); }
+    });
+    if (currentIdx >= 0) {
+      $("f_music").value = posts[currentIdx].music || "";
+      updatePreview();
+    }
+    const output = postsToFullJs();
+    parseProjectsJs(output); // 写入前先确认生成内容仍是有效的 projects.js
+
+    writable = await projectsHandle.createWritable();
+    await writable.write(output);
+    await writable.close();
+    writable = null;
+
+    // 重新从目录取得文件并逐字核对，只有确认落盘才提示成功。
+    projectsHandle = await dirHandle.getFileHandle("projects.js", { create: false });
+    const savedFile = await projectsHandle.getFile();
+    const savedText = await savedFile.text();
+    if (savedText !== output) {
+      throw new Error("写入后的文件内容与编辑器不一致");
+    }
+    posts = parseProjectsJs(savedText);
+    renderList();
+    const savedAt = new Date(savedFile.lastModified).toLocaleTimeString();
+    markClean(`✓ 已核验落盘 · ${savedAt} · ${posts.length} 帖`);
+    showToast(`✓ 已保存并核验 projects.js（${posts.length} 帖）`);
+  } catch (e) {
+    if (writable) {
+      try { await writable.abort(); } catch (_) {}
+    }
+    console.error(e);
+    isDirty = true;
+    scheduleDraftBackup();
+    setSaveState("保存未完成：" + e.message, "error");
+    showToast("保存失败：" + e.message, true);
+  } finally {
+    saveInProgress = false;
+    $("saveBtn").textContent = "💾 保存到 projects.js";
+    updateActionState();
+  }
+}
+
+// ── 状态 UI ──
+function updateStatusUI() {
+  const pill = $("statusPill");
+  const connected = !!dirHandle;
+  if (!FSA_SUPPORTED) {
+    pill.className = "status-pill unsupported";
+    pill.textContent = "✕ 浏览器不支持（请用 Chrome/Edge）";
+    setSaveState("当前浏览器无法直接写入文件", "error");
+    updateActionState();
+    return;
+  }
+  if (connected) {
+    pill.className = "status-pill connected";
+    pill.textContent = DESKTOP_MODE
+      ? `🖥 桌面版已自动连接：${dirHandle.name}`
+      : `📁 已连接：${dirHandle.name} · 点击换目录`;
+  } else {
+    pill.className = "status-pill disconnected";
+    pill.textContent = "🔌 未连接，点此连接项目目录";
+  }
+  updateActionState();
+}
+
+// ── 列表渲染 ──
+function isExternalImagePath(path) {
+  return /^(https?:|data:|blob:)/i.test(path);
+}
+
+async function resolveDisplayImage(path) {
+  if (!path || !DESKTOP_MODE || isExternalImagePath(path)) return path;
+  try {
+    return await DESKTOP_BRIDGE.resolveImage(path);
+  } catch (e) {
+    console.warn(`读取图片失败：${path}`, e);
+    return "";
+  }
+}
+
+async function hydrateProjectImages(root) {
+  if (!DESKTOP_MODE) return;
+  const images = [...root.querySelectorAll("[data-project-image]")];
+  await Promise.all(images.map(async img => {
+    const path = img.dataset.projectImage || "";
+    const resolved = await resolveDisplayImage(path);
+    if (resolved && img.dataset.projectImage === path) img.src = resolved;
+  }));
+}
+
+function renderList() {
+  $("postCount").textContent = posts.length + " 帖";
+  const body = $("postListBody");
+  if (!posts.length) {
+    if (dirHandle) {
+      body.innerHTML = `<div class="empty-state">列表为空<br>点 <strong>➕ 新帖子</strong> 开始</div>`;
+    } else {
+      body.innerHTML = `<div class="empty-state">还没连接项目目录<br>点上方 <strong>🔌 未连接</strong></div>`;
+    }
+    return;
+  }
+  body.innerHTML = posts.map((p, i) => `
+    <div class="post-card ${i === currentIdx ? 'active' : ''}" data-idx="${i}">
+      <img class="post-card-thumb"${p.image && (!DESKTOP_MODE || isExternalImagePath(p.image)) ? ` src="${escapeHtml(p.image)}"` : ''} data-project-image="${escapeHtml(p.image || '')}" alt="" onerror="this.style.background='linear-gradient(135deg,#ffd6e3,#ffaec9)';this.removeAttribute('src')">
+      <div class="post-card-meta">
+        <div class="post-card-title">${escapeHtml(p.title || '(无标题)')}</div>
+        <div class="post-card-year">${escapeHtml(p.year || '')} · ${escapeHtml(p.tag || '')}</div>
+      </div>
+      <span class="post-card-idx">#${i + 1}</span>
+    </div>
+  `).join("");
+  body.querySelectorAll(".post-card").forEach(el => {
+    el.addEventListener("click", () => selectPost(parseInt(el.dataset.idx)));
+  });
+  hydrateProjectImages(body);
+}
+
+// ── 表单填充 / 读取 ──
+function selectPost(idx) {
+  if (musicImportInProgress || saveInProgress) return;
+  currentIdx = idx;
+  const p = posts[idx];
+  if (!p) return;
+  $("f_year").value = p.year || "";
+  $("f_tag").value = p.tag || "";
+  $("f_title").value = p.title || "";
+  $("f_desc").value = p.desc || "";
+  $("f_depth").value = p.depth ?? 0.8;
+  $("depthVal").textContent = (p.depth ?? 0.8).toFixed(2);
+  $("f_image").value = p.image || "";
+  $("f_content").value = p.content || "";
+  $("f_music").value = p.music || "";
+  $("f_musicTitle").value = p.musicTitle || "";
+  $("f_musicVolume").value = Math.round(HanakoMusic.settings(p).volume * 100);
+  $("musicVolumeValue").textContent = $("f_musicVolume").value + "%";
+  $("f_musicLoop").checked = HanakoMusic.settings(p).loop;
+  updateMusicPreview({ autoFillMetadata: false });
+  $("editorTitle").textContent = `编辑：${p.title || '(无标题)'} #${idx + 1}`;
+  $("deleteBtn").style.display = "inline-flex";
+  renderList();
+  updatePreview();
+  updateImagePreview();
+  updateActionState();
+}
+
+function readForm() {
+  return {
+    year: $("f_year").value,
+    tag: $("f_tag").value,
+    title: $("f_title").value,
+    desc: $("f_desc").value,
+    depth: parseFloat($("f_depth").value),
+    image: $("f_image").value,
+    music: $("f_music").value.trim(),
+    musicTitle: $("f_musicTitle").value.trim(),
+    musicVolume: Number($("f_musicVolume").value) / 100,
+    musicLoop: $("f_musicLoop").checked,
+    content: $("f_content").value
+  };
+}
+
+function syncFormToPost() {
+  if (currentIdx < 0) return;
+  posts[currentIdx] = readForm();
+}
+
+function updatePreview() {
+  if (currentIdx < 0) {
+    $("codeOutput").textContent = "— 未选中帖子 —";
+    return;
+  }
+  $("codeOutput").textContent = postToCode(readForm());
+}
+
+async function updateImagePreview() {
+  const url = $("f_image").value.trim();
+  const img = $("imagePreview");
+  if (!url) { img.classList.remove("visible"); return; }
+  const resolved = await resolveDisplayImage(url);
+  if ($("f_image").value.trim() !== url || !resolved) {
+    if (!resolved) img.classList.remove("visible");
+    return;
+  }
+  img.src = resolved;
+  img.classList.add("visible");
+  img.onerror = () => img.classList.remove("visible");
+}
+
+function newPost() {
+  if (!dirHandle || musicImportInProgress || saveInProgress) return;
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+  posts.push({ year: dateStr, tag: "", title: "", desc: "", depth: 0.8, image: "", content: "" });
+  selectPost(posts.length - 1);
+  markDirty();
+  $("f_title").focus();
+}
+
+function deleteCurrent() {
+  if (currentIdx < 0 || musicImportInProgress || saveInProgress) return;
+  if (!confirm(`确定删除「${posts[currentIdx].title || '(无标题)'}」吗？`)) return;
+  posts.splice(currentIdx, 1);
+  currentIdx = Math.min(currentIdx, posts.length - 1);
+  if (posts.length === 0) { currentIdx = -1; clearForm(); }
+  else selectPost(currentIdx);
+  renderList();
+  markDirty();
+}
+
+function clearForm() {
+  ["f_year","f_tag","f_title","f_desc","f_image","f_content","f_music","f_musicTitle"].forEach(id => $(id).value = "");
+  $("f_musicVolume").value = 60;
+  $("musicVolumeValue").textContent = "60%";
+  $("f_musicLoop").checked = true;
+  updateMusicPreview();
+  $("f_depth").value = 0.8;
+  $("depthVal").textContent = "0.80";
+  $("editorTitle").textContent = dirHandle ? "选一个帖子编辑，或创建新帖子" : "连接目录后即可编辑";
+  $("deleteBtn").style.display = "none";
+  $("codeOutput").textContent = "— 未选中帖子 —";
+  $("imagePreview").classList.remove("visible");
+  updateActionState();
+}
+
+// ── 图片模态框 ──
+let pendingImage = null; // { blob, name, suggested, srcContext }
+function openImageModal(srcContext = "cover") {
+  if (!dirHandle) { showToast("先连接项目目录", true); return; }
+  if (currentIdx < 0 && srcContext !== "none") {
+    showToast("请先选择一个帖子，或点击“新帖子”", true);
+    return;
+  }
+  pendingImage = null;
+  $("imgFilename").value = "";
+  $("modalImagePreview").src = "";
+  $("imgPreviewWrap").style.display = "none";
+  $("filenameRow").style.display = "none";
+  $("actionRadios").style.display = "none";
+  $("modalSave").disabled = true;
+  // 根据上下文默认选择 action
+  document.querySelectorAll('input[name="imgAction"]').forEach(r => {
+    r.checked = (r.value === srcContext);
+  });
+  $("imageModal").classList.add("show");
+}
+
+function closeImageModal() {
+  $("imageModal").classList.remove("show");
+  pendingImage = null;
+}
+
+function setPendingImage(blob, originalName) {
+  const url = URL.createObjectURL(blob);
+  $("modalImagePreview").src = url;
+  $("modalImagePreview").onload = () => {
+    $("imgInfo").textContent = `${$("modalImagePreview").naturalWidth} × ${$("modalImagePreview").naturalHeight} · ${(blob.size/1024).toFixed(1)} KB`;
+  };
+  $("imgPreviewWrap").style.display = "block";
+  $("filenameRow").style.display = "block";
+  $("actionRadios").style.display = "block";
+
+  // 自动建议文件名
+  const ext = (originalName?.match(/\.[^.]+$/)?.[0] || guessExtFromMime(blob.type) || ".png").toLowerCase();
+  const base = (originalName?.replace(/\.[^.]+$/, "") || autoBaseName());
+  $("imgFilename").value = sanitizeFilename(base + ext);
+  pendingImage = { blob, suggested: $("imgFilename").value };
+  $("modalSave").disabled = false;
+}
+
+function guessExtFromMime(mime) {
+  return ({ "image/png":".png", "image/jpeg":".jpg", "image/jpg":".jpg",
+           "image/gif":".gif", "image/webp":".webp", "image/svg+xml":".svg" })[mime] || "";
+}
+
+function sanitizeFilename(name) {
+  // 转半角，去掉非法字符
+  return name.trim().replace(/[\\\/:*?"<>|]/g, "_").replace(/\s+/g, "-");
+}
+
+function autoBaseName() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  return `img-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+async function saveImageFromModal() {
+  if (!pendingImage || !imgDirHandle) return;
+  let filename = sanitizeFilename($("imgFilename").value);
+  if (!filename) { showToast("文件名不能为空", true); return; }
+  if (!/\.[a-z0-9]+$/i.test(filename)) {
+    filename += guessExtFromMime(pendingImage.blob.type) || ".png";
+  }
+
+  try {
+    const fh = await imgDirHandle.getFileHandle(filename, { create: true });
+    const writable = await fh.createWritable();
+    await writable.write(pendingImage.blob);
+    await writable.close();
+
+    const path = "img/" + filename;
+    const action = document.querySelector('input[name="imgAction"]:checked')?.value || "none";
+    if (action === "insert") {
+      // 在 content textarea 当前光标位置插入 <img>
+      const ta = $("f_content");
+      const tag = `<img src="${path}">`;
+      const s = ta.selectionStart, e = ta.selectionEnd;
+      ta.value = ta.value.substring(0, s) + tag + ta.value.substring(e);
+      ta.selectionStart = ta.selectionEnd = s + tag.length;
+      syncFormToPost();
+      updatePreview();
+      markDirty();
+    } else if (action === "cover") {
+      $("f_image").value = path;
+      syncFormToPost();
+      updatePreview();
+      updateImagePreview();
+      renderList();
+      markDirty();
+    }
+    closeImageModal();
+    showToast(`✓ 已保存 ${path}`);
+  } catch (e) {
+    showToast("保存图片失败：" + e.message, true);
+  }
+}
+
+// ── 粘贴 / 拖入 处理 ──
+function handlePastedOrDroppedItem(item) {
+  if (!item) return false;
+  if (item.kind === "file" || item instanceof File) {
+    const file = item.getAsFile ? item.getAsFile() : item;
+    if (file && file.type.startsWith("image/")) {
+      setPendingImage(file, file.name);
+      return true;
+    }
+  }
+  return false;
+}
+
+// modal 内的粘贴/拖入
+$("dropZone").addEventListener("click", () => $("modalFileInput").click());
+$("modalFileInput").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (file && file.type.startsWith("image/")) setPendingImage(file, file.name);
+  e.target.value = "";
+});
+
+["dragenter", "dragover"].forEach(ev => {
+  $("dropZone").addEventListener(ev, e => {
+    e.preventDefault();
+    $("dropZone").classList.add("dragover");
+  });
+});
+["dragleave", "drop"].forEach(ev => {
+  $("dropZone").addEventListener(ev, e => {
+    e.preventDefault();
+    $("dropZone").classList.remove("dragover");
+  });
+});
+$("dropZone").addEventListener("drop", e => {
+  e.preventDefault();
+  const file = [...e.dataTransfer.files].find(f => f.type.startsWith("image/"));
+  if (file) setPendingImage(file, file.name);
+});
+
+// 全局 paste 监听（modal 打开时生效）
+window.addEventListener("paste", e => {
+  if (!$("imageModal").classList.contains("show")) return;
+  const items = [...(e.clipboardData?.items || [])];
+  const imgItem = items.find(it => it.type.startsWith("image/"));
+  if (imgItem) {
+    e.preventDefault();
+    const file = imgItem.getAsFile();
+    if (file) setPendingImage(file, file.name || "");
+  }
+});
+
+// 全局拖入图片 → 自动打开模态框
+let dragCounter = 0;
+window.addEventListener("dragenter", e => {
+  if (!e.dataTransfer?.types?.includes("Files")) return;
+  dragCounter++;
+  if (!$("imageModal").classList.contains("show")) {
+    $("globalDropHint").classList.add("show");
+  }
+});
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("dragleave", () => {
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    $("globalDropHint").classList.remove("show");
+  }
+});
+window.addEventListener("drop", e => {
+  dragCounter = 0;
+  $("globalDropHint").classList.remove("show");
+  if ($("imageModal").classList.contains("show")) return; // modal 内的 drop 已单独处理
+  e.preventDefault();
+  if (!dirHandle) return;
+  const file = [...(e.dataTransfer.files || [])].find(f => f.type.startsWith("image/"));
+  if (file) {
+    openImageModal("insert"); // 默认插入 content
+    setPendingImage(file, file.name);
+  }
+});
+
+// ── Toast ──
+let toastTimer = null;
+function showToast(msg, isError = false) {
+  $("toast").textContent = msg;
+  $("toast").classList.toggle("error", isError);
+  $("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $("toast").classList.remove("show"), 2400);
+}
+
+// ── 事件绑定 ──
+$("statusPill").addEventListener("click", async () => {
+  if (DESKTOP_MODE) {
+    showToast(`✓ 桌面版已连接 ${dirHandle?.name || "当前项目目录"}`);
+    return;
+  }
+  if (!dirHandle) {
+    try {
+      const saved = await idbGet("dirHandle");
+      if (saved) {
+        await connectDirectory(true);
+        return;
+      }
+    } catch (e) {
+      console.warn("读取上次目录失败", e);
+    }
+  }
+  await connectDirectory(false);
+});
+$("reloadBtn").addEventListener("click", async () => {
+  if (isDirty && !confirm("重新加载会丢弃当前未保存更改，确定继续吗？")) return;
+  clearDraftBackup();
+  isDirty = false;
+  await loadProjectsFile({ restoreDraft: false });
+});
+$("newPostBtn").addEventListener("click", newPost);
+$("saveBtn").addEventListener("click", saveProjectsFile);
+$("deleteBtn").addEventListener("click", deleteCurrent);
+$("addImageBtn").addEventListener("click", () => openImageModal("cover"));
+$("insertImageBtn").addEventListener("click", () => openImageModal("insert"));
+$("modalClose").addEventListener("click", closeImageModal);
+$("modalCancel").addEventListener("click", closeImageModal);
+$("modalSave").addEventListener("click", saveImageFromModal);
+$("imageModal").addEventListener("click", e => {
+  if (e.target === $("imageModal")) closeImageModal();
+});
+
+$("copyEntryBtn").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("codeOutput").textContent);
+    showToast("✓ 已复制此帖代码");
+  } catch { showToast("× 复制失败", true); }
+});
+
+// 表单字段联动
+["f_year","f_tag","f_title","f_desc","f_image","f_content"].forEach(id => {
+  $(id).addEventListener("input", () => {
+    syncFormToPost();
+    updatePreview();
+    if (["f_title","f_year","f_tag","f_image"].includes(id)) renderList();
+    if (id === "f_image") updateImagePreview();
+    markDirty();
+  });
+});
+$("f_depth").addEventListener("input", () => {
+  $("depthVal").textContent = parseFloat($("f_depth").value).toFixed(2);
+  syncFormToPost();
+  updatePreview();
+  markDirty();
+});
+
+// Music preview owns its object URL and rejects stale asynchronous resolutions.
+function resetMusicPreview() {
+  clearTimeout(musicPreviewTimer);
+  musicPreviewRevision++;
+  if (musicMetadataController) musicMetadataController.abort();
+  musicMetadataController = null;
+  const preview = $("musicPreview");
+  preview.pause();
+  preview.removeAttribute("src");
+  preview.load();
+  preview.hidden = true;
+  if (musicPreviewObjectUrl) URL.revokeObjectURL(musicPreviewObjectUrl);
+  musicPreviewObjectUrl = null;
+  musicPreviewSources = [];
+  musicPreviewSourceIndex = 0;
+  musicPreviewSwitching = false;
+  musicPreviewWantsPlayback = false;
+}
+
+function setMusicHint(message, error = false) {
+  $("musicHint").textContent = message;
+  $("musicHint").classList.toggle("is-error", error);
+}
+
+function loadMusicPreviewSource(index, resumePlayback = false) {
+  const preview = $("musicPreview");
+  musicPreviewSourceIndex = index;
+  preview.src = musicPreviewSources[index];
+  preview.load();
+  if (resumePlayback) preview.play().catch(() => {});
+}
+
+async function updateMusicPreview({ autoFillMetadata = false } = {}) {
+  resetMusicPreview();
+  const revision = musicPreviewRevision;
+  const source = $("f_music").value.trim();
+  $("musicOptions").hidden = !source;
+  updateActionState();
+  if (!source) {
+    setMusicHint("未添加音乐，这篇文章不会显示音频条。");
+    return;
+  }
+  setMusicHint("正在准备试听…");
+  try {
+    const sourceInfo = HanakoMusic.parseSource(source);
+    let sources = sourceInfo.playbackSources;
+    if (sourceInfo.kind === "local") {
+      let blob;
+      if (DESKTOP_MODE) {
+        blob = await DESKTOP_BRIDGE.readAudio(sourceInfo.source);
+      } else {
+        const directory = await dirHandle.getDirectoryHandle("audio");
+        const handle = await directory.getFileHandle(sourceInfo.source.slice(6));
+        blob = await handle.getFile();
+        if (blob.size > HanakoMusic.MAX_AUDIO_BYTES) throw new Error("音频超过 64 MB，无法试听");
+      }
+      if (revision !== musicPreviewRevision) return;
+      musicPreviewObjectUrl = URL.createObjectURL(blob);
+      sources = [musicPreviewObjectUrl];
+    }
+    if (revision !== musicPreviewRevision) return;
+    const preview = $("musicPreview");
+    preview.volume = Number($("f_musicVolume").value) / 100;
+    preview.loop = $("f_musicLoop").checked;
+    musicPreviewSources = sources;
+    loadMusicPreviewSource(0);
+    preview.hidden = false;
+    if (sourceInfo.kind !== "netease") {
+      setMusicHint("已设置配乐，可在下方试听；保存后，打开文章会自动播放。");
+      return;
+    }
+
+    if (autoFillMetadata && $("f_music").value.trim() !== sourceInfo.source) {
+      $("f_music").value = sourceInfo.source;
+      syncFormToPost();
+      updatePreview();
+    }
+    setMusicHint(`已识别网易云歌曲 #${sourceInfo.id}，正在读取曲名和歌手…`);
+    musicMetadataController = new AbortController();
+    const titleAtRequest = $("f_musicTitle").value;
+    try {
+      const metadata = await HanakoMusic.fetchNeteaseMetadata(sourceInfo.id, {
+        signal: musicMetadataController.signal
+      });
+      if (revision !== musicPreviewRevision) return;
+      if (autoFillMetadata && $("f_musicTitle").value === titleAtRequest) {
+        $("f_musicTitle").value = metadata.title;
+        syncFormToPost();
+        updatePreview();
+      }
+      const providerNote = metadata.providerIndex > 0 ? " · 已使用备用接口读取信息" : "";
+      setMusicHint(`网易云 · ${metadata.title}${providerNote}；可在下方试听。`);
+    } catch (error) {
+      if (error?.name === "AbortError" || revision !== musicPreviewRevision) return;
+      setMusicHint(`已识别网易云歌曲 #${sourceInfo.id}；曲名读取失败，但仍可试听并手动填写名称。`, true);
+    } finally {
+      if (revision === musicPreviewRevision) musicMetadataController = null;
+    }
+  } catch (error) {
+    if (revision === musicPreviewRevision) setMusicHint("无法试听：" + (error.message || error), true);
+  }
+}
+
+async function importMusic(file) {
+  if (!file || !dirHandle || currentIdx < 0 || musicImportInProgress || saveInProgress) return;
+  if (!HanakoMusic.AUDIO_EXTENSIONS.test(file.name)) {
+    showToast("请选择 MP3、M4A、WAV、OGG、AAC、FLAC、Opus 或 WebM 音频", true);
+    return;
+  }
+  if (file.size === 0 || file.size > HanakoMusic.MAX_AUDIO_BYTES) {
+    showToast("请选择非空且不超过 64 MB 的音频文件", true);
+    return;
+  }
+  musicImportInProgress = true;
+  resetMusicPreview();
+  updateActionState();
+  setMusicHint("正在导入音频，请稍候…");
+  let writable = null;
+  try {
+    if (!(await verifyPermission(dirHandle))) throw new Error("项目目录写入权限已失效");
+    const extension = file.name.split(".").pop().toLowerCase();
+    const stem = file.name.slice(0, -(extension.length + 1)).replace(/[<>:"/\\|?*\x00-\x1f]/g, "-").slice(0, 60) || "music";
+    const filename = `${stem}-${crypto.randomUUID()}.${extension}`;
+    const relativePath = `audio/${filename}`;
+    if (DESKTOP_MODE) {
+      await DESKTOP_BRIDGE.saveAudio(filename, file);
+    } else {
+      const directory = await dirHandle.getDirectoryHandle("audio", { create: true });
+      const handle = await directory.getFileHandle(filename, { create: true });
+      writable = await handle.createWritable();
+      await writable.write(file);
+      await writable.close();
+      writable = null;
+      const saved = await handle.getFile();
+      if (saved.size !== file.size) throw new Error("音频保存后的大小不一致，请重新导入");
+    }
+    $("f_music").value = relativePath;
+    $("f_musicTitle").value = file.name.replace(/\.[^.]+$/, "");
+    syncFormToPost();
+    updatePreview();
+    markDirty();
+    await updateMusicPreview({ autoFillMetadata: false });
+    showToast("✓ 音频已导入，请保存文章以应用配乐");
+  } catch (error) {
+    if (writable) { try { await writable.abort(); } catch (_) {} }
+    setMusicHint("导入失败：" + (error.message || error), true);
+    showToast("音频导入失败：" + (error.message || error), true);
+  } finally {
+    musicImportInProgress = false;
+    $("musicFileInput").value = "";
+    updateActionState();
+  }
+}
+
+$("importMusicBtn").addEventListener("click", () => $("musicFileInput").click());
+$("musicFileInput").addEventListener("change", event => importMusic(event.target.files[0]));
+$("removeMusicBtn").addEventListener("click", () => {
+  $("f_music").value = "";
+  $("f_musicTitle").value = "";
+  syncFormToPost();
+  updatePreview();
+  updateMusicPreview({ autoFillMetadata: false });
+  markDirty();
+});
+$("f_music").addEventListener("input", () => {
+  resetMusicPreview();
+  $("musicOptions").hidden = !$("f_music").value.trim();
+  syncFormToPost();
+  updatePreview();
+  markDirty();
+  setMusicHint("音乐地址已修改，正在准备试听…");
+  musicPreviewTimer = setTimeout(() => updateMusicPreview({ autoFillMetadata: true }), 450);
+});
+for (const id of ["f_musicTitle", "f_musicVolume", "f_musicLoop"]) {
+  $(id).addEventListener("input", () => {
+    $("musicPreview").volume = Number($("f_musicVolume").value) / 100;
+    $("musicPreview").loop = $("f_musicLoop").checked;
+    $("musicVolumeValue").textContent = $("f_musicVolume").value + "%";
+    syncFormToPost();
+    updatePreview();
+    markDirty();
+  });
+}
+$("musicPreview").addEventListener("play", () => {
+  musicPreviewWantsPlayback = true;
+});
+$("musicPreview").addEventListener("pause", () => {
+  if (!musicPreviewSwitching && !$("musicPreview").error) musicPreviewWantsPlayback = false;
+});
+$("musicPreview").addEventListener("loadedmetadata", () => {
+  if (musicPreviewSwitching) {
+    musicPreviewSwitching = false;
+    setMusicHint("主接口不可用，已切换备用接口；可在下方试听。");
+  }
+});
+$("musicPreview").addEventListener("playing", () => {
+  musicPreviewSwitching = false;
+});
+$("musicPreview").addEventListener("error", () => {
+  const preview = $("musicPreview");
+  if (!preview.getAttribute("src")) return;
+  if (musicPreviewSourceIndex + 1 < musicPreviewSources.length) {
+    const resumePlayback = musicPreviewWantsPlayback;
+    musicPreviewSwitching = true;
+    setMusicHint("网易云主接口不可用，正在切换备用接口…");
+    loadMusicPreviewSource(musicPreviewSourceIndex + 1, resumePlayback);
+    return;
+  }
+  musicPreviewSwitching = false;
+  setMusicHint(musicPreviewSources.length > 1
+    ? "两个网易云解析服务目前都无法播放，请稍后重试。"
+    : "无法播放，请检查文件格式或音乐直链是否有效。", true);
+});
+window.addEventListener("pagehide", resetMusicPreview);
+
+// 快捷插入（不带 id 的那些）
+document.querySelectorAll("[data-insert]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const ta = $("f_content");
+    const snippet = btn.dataset.insert.replace(/\\n/g, "\n");
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    ta.value = ta.value.substring(0, s) + snippet + ta.value.substring(e);
+    ta.selectionStart = ta.selectionEnd = s + snippet.length;
+    ta.focus();
+    syncFormToPost();
+    updatePreview();
+    markDirty();
+  });
+});
+
+$("editForm").addEventListener("submit", e => e.preventDefault());
+
+// Ctrl/Cmd + S 保存，避免误触浏览器的“保存网页”。
+window.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    if (!$("saveBtn").disabled) saveProjectsFile();
+  }
+});
+
+window.addEventListener("beforeunload", e => {
+  if (!isDirty) return;
+  writeDraftBackup();
+  e.preventDefault();
+  e.returnValue = "";
+});
+
+// Esc 关闭模态框
+window.addEventListener("keydown", e => {
+  if (e.key === "Escape" && $("imageModal").classList.contains("show")) {
+    closeImageModal();
+  }
+});
+
+// 启动时检查是否有缓存的目录句柄，有的话尝试恢复
+(async function init() {
+  updateStatusUI();
+  renderList();
+  if (DESKTOP_MODE) {
+    await connectDirectory(false);
+    return;
+  }
+  if (FSA_SUPPORTED) {
+    try {
+      const saved = await idbGet("dirHandle");
+      if (saved && (await saved.queryPermission({ mode: "readwrite" })) === "granted") {
+        // 已有授权，直接连
+        await connectDirectory(true);
+      } else if (saved) {
+        // 缓存里有但需要重新授权，pill 显示提示
+        $("statusPill").className = "status-pill disconnected";
+        $("statusPill").textContent = `🔄 点此重连上次的目录：${saved.name}`;
+      }
+    } catch (e) {
+      console.warn("恢复目录句柄失败", e);
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

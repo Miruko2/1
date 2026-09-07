@@ -1,0 +1,32 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HANAKO Editor",
+  "version": "1.0.0",
+  "identifier": "cc.hanakos.editor",
+  "build": {
+    "beforeDevCommand": "npm run prepare-ui",
+    "beforeBuildCommand": "npm run prepare-ui",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "HANAKO · 帖子编辑器",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 960,
+        "minHeight": 680,
+        "center": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src ipc: http://ipc.localhost https://api.qijieya.cn https://api.injahow.cn"
+    }
+  },
+  "bundle": {
+    "active": false
+  }
+}

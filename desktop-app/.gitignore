@@ -1,0 +1,4 @@
+node_modules/
+dist/
+.cargo-local/
+src-tauri/target/
