@@ -1,0 +1,12 @@
+backups/
+projects.js.bak
+**/node_modules/
+**/.next/
+**/dist/
+**/target/
+**/.cargo-local/
+**/test-results/
+**/.git/
+.env
+.env.*
+*.tsbuildinfo

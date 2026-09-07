@@ -1111,6 +1111,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="article-navigation.css" />
   <link rel="stylesheet" href="article-music.css" />
 </head>
 <body>
@@ -1196,6 +1197,7 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js"></script>
   <script src="simple-liquid-bg.js"></script>
+  <script src="article-navigation.js"></script>
   <script src="article-music.js"></script>
   <script>
 
@@ -1310,6 +1312,7 @@
     let activeCard = null;
     let activeFocusCard = null;
     let activeContentPanel = null;
+    let activeArticleNavigation = null;
     let activeArticleMusic = null;
     let canParallax = true;
     let pointerX = window.innerWidth * 0.5;
@@ -1644,8 +1647,11 @@
       const contentPanel = activeContentPanel;
       const saved = activeSnapshot;
       const sourceRect = card.getBoundingClientRect();
+      if (activeArticleNavigation) activeArticleNavigation.destroy();
+      activeArticleNavigation = null;
       if (activeArticleMusic) activeArticleMusic.destroy();
       activeArticleMusic = null;
+      gsap.killTweensOf(focusCardEl);
       activeCard = null;
       activeFocusCard = null;
       activeContentPanel = null;
@@ -1671,6 +1677,7 @@
 
       // 右侧内容面板：跟着圆球化的节奏，先收缩再淡出（提前于掉落完成）
       if (contentPanel) {
+        gsap.killTweensOf(contentPanel);
         contentPanel.querySelectorAll("video").forEach(v => v.pause());
         gsap.to(contentPanel, {
           scale: 0.7,
@@ -2041,18 +2048,22 @@
         function updateBlur() {
           const wrapRect = scrollWrapper.getBoundingClientRect();
           const H = wrapRect.height;
+          const fadeDistance = Math.min(FADE, H * 0.25);
           const scrolled = scrollWrapper.scrollTop > 5; // 滚动超过5px才启用顶部模糊
-          scrollWrapper.querySelectorAll("p, h3, h4, ul, ol, hr, img, video").forEach(el => {
+          scrollWrapper.querySelectorAll(".article-toc, p, h1, h2, h3, h4, h5, h6, ul, ol, hr, img, video").forEach(el => {
+            if (el.closest(".article-toc") && !el.classList.contains("article-toc")) return;
             const r = el.getBoundingClientRect();
             const top = r.top - wrapRect.top;
             const bot = r.bottom - wrapRect.top;
             let t = 1; // 0=完全模糊, 1=完全清晰
             if (bot < 0 || top > H) {
               t = 0;
-            } else if (top > H - FADE) {
-              t = Math.max(0, (H - top) / FADE);
-            } else if (scrolled && bot < FADE) {
-              t = Math.max(0, bot / FADE);
+            } else if (el.classList.contains("toc-target") && top >= 0 && bot <= H) {
+              t = 1;
+            } else if (top > H - fadeDistance) {
+              t = Math.max(0, (H - top) / fadeDistance);
+            } else if (scrolled && bot < fadeDistance) {
+              t = Math.max(0, bot / fadeDistance);
             }
             el.style.filter  = t < 0.99 ? `blur(${(MAX_BLUR * (1 - t)).toFixed(2)}px)` : "";
             el.style.opacity = t < 0.99 ? (0.15 + 0.85 * t).toFixed(3) : "";
@@ -2078,14 +2089,6 @@
           });
         }
 
-        let rafId = null;
-        scrollWrapper.addEventListener("scroll", () => {
-          if (rafId) return;
-          rafId = requestAnimationFrame(() => { updateBlur(); updateVideoPlayback(); rafId = null; });
-        });
-        // 初始渲染
-        requestAnimationFrame(() => { updateBlur(); updateVideoPlayback(); });
-
         // 右侧面板紧跟左侧图片，紧挨着，整体一起左移
         const panelLeft = hasTwoPanel ? panelX : (window.innerWidth * 0.5 + panelGap * 0.5 - mobileLeftOffset);
         const panelW = isMobile
@@ -2103,6 +2106,13 @@
           zIndex: 1200
         });
 
+        const articleNavigation = createArticleNavigation({
+          panel,
+          scrollWrapper,
+          onUpdate: () => { updateBlur(); updateVideoPlayback(); }
+        });
+        activeArticleNavigation = articleNavigation;
+
         gsap.to(panel, {
           scale: 1,
           opacity: 1,
@@ -2110,8 +2120,8 @@
           duration: 0.72,
           delay: 0.18,
           ease: "back.out(1.9)",
-          onUpdate: () => { updateBlur(); updateVideoPlayback(); },
-          onComplete: () => { updateBlur(); updateVideoPlayback(); }
+          onUpdate: articleNavigation.refresh,
+          onComplete: articleNavigation.refresh
         });
 
         panel.addEventListener("click", e => e.stopPropagation());
@@ -2124,20 +2134,6 @@
           }
         });
 
-        let targetScroll = 0;
-        panel.addEventListener("wheel", e => {
-          e.preventDefault();
-          e.stopPropagation();
-          const maxScroll = scrollWrapper.scrollHeight - scrollWrapper.clientHeight;
-          targetScroll = Math.max(0, Math.min(maxScroll, targetScroll + e.deltaY * 0.4));
-          gsap.to(scrollWrapper, {
-            scrollTop: targetScroll,
-            duration: 0.75,
-            ease: "power3.out",
-            overwrite: "auto",
-            onUpdate: () => { updateBlur(); updateVideoPlayback(); }
-          });
-        }, { passive: false });
       } else {
         // 无 content 时，焦点卡片内部可滚动
         focusCardEl.addEventListener("wheel", e => {

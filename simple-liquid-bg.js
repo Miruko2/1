@@ -1,7 +1,7 @@
 // Simplified Liquid Background Integration
 // Based on the original liquid-refraction-lab approach but adapted for vanilla HTML
 
-function initLiquidBackground() {
+async function initLiquidBackground() {
   // Create canvas element for the liquid effect
   const canvas = document.createElement('canvas');
   canvas.id = 'liquid-background-canvas';
@@ -17,53 +17,22 @@ function initLiquidBackground() {
   document.body.style.position = 'relative'; // Ensure proper positioning context
   document.body.insertBefore(canvas, document.body.firstChild);
 
-  // Load the liquid background module and initialize it
-  return new Promise((resolve, reject) => {
-    // Create script to load the liquid background module
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.textContent = `
-      import LiquidBackground from 'https://cdn.jsdelivr.net/npm/threejs-components@0.0.30/build/backgrounds/liquid1.min.js';
+  // Import in this scope so initialization failures reach the caller's catch handler.
+  const { default: LiquidBackground } = await import(
+    'https://cdn.jsdelivr.net/npm/threejs-components@0.0.30/build/backgrounds/liquid1.min.js'
+  );
+  const app = LiquidBackground(canvas);
 
-      // Initialize once the script loads
-      window.addEventListener('load', () => {
-        try {
-          const canvas = document.getElementById('liquid-background-canvas');
-          if (canvas) {
-            const app = LiquidBackground(canvas);
+  // Preserve the existing water ripple parameters.
+  if (app.liquidPlane) {
+    app.liquidPlane.material.metalness = 0.35;
+    app.liquidPlane.material.roughness = 0.45;
+    app.liquidPlane.uniforms.displacementScale.value = 2;
+    app.setRain(false);
+  }
 
-            // Configure for water ripple effect
-            if (app.liquidPlane) {
-              app.liquidPlane.material.metalness = 0.35;
-              app.liquidPlane.material.roughness = 0.45;
-              app.liquidPlane.uniforms.displacementScale.value = 2;
-              app.setRain(false);
-            }
-
-            // Expose for potential cleanup
-            window.__liquidApp = app;
-            resolve(app);
-          } else {
-            reject(new Error('Canvas element not found'));
-          }
-        } catch (error) {
-          reject(error);
-        }
-      });
-    `;
-
-    script.onerror = () => reject(new Error('Failed to load liquid background module'));
-
-    // Add script to document
-    document.body.appendChild(script);
-
-    // Cleanup script after a delay
-    setTimeout(() => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-    }, 5000);
-  });
+  window.__liquidApp = app;
+  return app;
 }
 
 // Initialize when DOM is ready
