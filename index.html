@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>HANAKO</title>
   <style>
     :root {
@@ -38,7 +38,7 @@
       overflow-x: hidden;
       cursor: default;
     }
-    
+
     body::after {
       content: "";
       position: fixed;
@@ -74,11 +74,11 @@
       padding: clamp(2rem, 4vw, 3.5rem);
       pointer-events: none;
     }
-    
+
     .page * {
       pointer-events: auto;
     }
-    
+
     .pin-spacer {
       pointer-events: none !important;
     }
@@ -890,7 +890,7 @@
       width: auto;
       height: auto;
       border-radius: 1.2rem;
-      box-shadow: 
+      box-shadow:
         0 48px 96px rgba(188, 132, 156, 0.4),
         0 24px 48px rgba(194, 145, 166, 0.3),
         0 12px 24px rgba(194, 145, 166, 0.2),
@@ -938,184 +938,14 @@
       transform: rotate(-45deg);
     }
 
-    /* 横屏旋转提示 */
-    .rotate-prompt {
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(135deg, var(--bg-0) 0%, var(--bg-1) 40%, var(--bg-2) 100%);
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      padding: 2rem;
-      text-align: center;
-    }
-
-    .rotate-icon {
-      width: 80px;
-      height: 80px;
-      margin-bottom: 1.5rem;
-      animation: rotateDevice 2s ease-in-out infinite;
-    }
-
-    .rotate-icon svg {
-      width: 100%;
-      height: 100%;
-      fill: var(--text);
-      opacity: 0.8;
-    }
-
-    @keyframes rotateDevice {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(90deg); }
-    }
-
-    .rotate-prompt h2 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-bottom: 0.8rem;
-      color: var(--text);
-    }
-
-    .rotate-prompt p {
-      font-size: 1rem;
-      color: var(--muted);
-      max-width: 300px;
-    }
-
-    /* 移动端竖屏时显示旋转提示 */
-    @media (max-width: 860px) and (orientation: portrait) {
-      .rotate-prompt {
-        display: flex;
-      }
-
-      .page {
-        display: none;
-      }
-    }
-
-    /* 移动端横屏适配 */
-    @media (max-width: 860px) and (orientation: landscape) {
-      .page {
-        padding: 0.8rem 1.2rem;
-      }
-
-      .topbar {
-        margin-bottom: 0.6rem;
-      }
-
-      .title {
-        font-size: 1.1rem;
-      }
-
-      .subtitle {
-        font-size: 0.65rem;
-        margin-top: 0.2rem;
-      }
-
-      .timeline-viewport {
-        height: 82vh;
-        border-radius: 1rem;
-      }
-
-      .timeline-track {
-        gap: 1rem;
-        padding: 0.5rem 8vw 0.5rem 4vw;
-      }
-
-      .project-card {
-        flex: 0 0 180px;
-        height: 240px;
-        padding: 0.7rem;
-        border-radius: 1rem;
-      }
-
-      .project-thumb {
-        height: 52%;
-        margin-bottom: 0.5rem;
-        border-radius: 0.7rem;
-      }
-
-      .project-year {
-        font-size: 0.6rem;
-        margin-bottom: 0.25rem;
-      }
-
-      .project-title {
-        font-size: 0.82rem;
-        margin-bottom: 0.3rem;
-      }
-
-      .project-desc {
-        font-size: 0.7rem;
-        line-height: 1.4;
-        -webkit-line-clamp: 2;
-      }
-
-      .hint {
-        display: none;
-      }
-    }
-
-    /* 小屏手机横屏（高度很矮） */
-    @media (max-height: 420px) and (orientation: landscape) {
-      .page {
-        padding: 0.5rem 1rem;
-      }
-
-      .topbar {
-        margin-bottom: 0.4rem;
-      }
-
-      .title {
-        font-size: 1rem;
-      }
-
-      .subtitle {
-        display: none;
-      }
-
-      .timeline-viewport {
-        height: 88vh;
-      }
-
-      .project-card {
-        flex: 0 0 160px;
-        height: 210px;
-        padding: 0.6rem;
-      }
-
-      .project-thumb {
-        height: 48%;
-        margin-bottom: 0.4rem;
-      }
-
-      .project-title {
-        font-size: 0.78rem;
-      }
-
-      .project-desc {
-        -webkit-line-clamp: 1;
-      }
-    }
-
-    /* 平板和小屏电脑 */
-    @media (max-width: 860px) and (min-width: 861px) {
-      .timeline-viewport {
-        height: 68vh;
-      }
-
-      .hint {
-        display: none;
-      }
-    }
   </style>
   <link rel="stylesheet" href="article-navigation.css" />
   <link rel="stylesheet" href="article-music.css" />
+  <link rel="stylesheet" href="mobile-layout.css" />
+  <script src="mobile-layout.js"></script>
 </head>
 <body>
-  <iframe id="liquid-bg-iframe" src="https://bg.hanakos.cc/" style="position: fixed; inset: 0; width: 100%; height: 100%; border: none; z-index: 1;"></iframe>
+  <iframe id="liquid-bg-iframe" data-src="https://bg.hanakos.cc/" title="水波背景" aria-hidden="true" tabindex="-1" style="position: fixed; inset: 0; width: 100%; height: 100%; border: none; z-index: 1;"></iframe>
 
   <!-- 全局 SVG 水面扭曲滤镜（卡片 hover 图片用，纯 SVG 不读像素 = 无 CORS 问题） -->
   <svg style="position: absolute; width: 0; height: 0; pointer-events: none;" aria-hidden="true">
@@ -1129,17 +959,6 @@
       </filter>
     </defs>
   </svg>
-  
-  <!-- 旋转提示 -->
-  <div class="rotate-prompt">
-    <div class="rotate-icon">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16.48 2.52c3.27 1.55 5.61 4.72 5.97 8.48h1.5C23.44 4.84 18.29 0 12 0l-.66.03 3.81 3.81 1.33-1.32zm-6.25-.77c-.59-.59-1.54-.59-2.12 0L1.75 8.11c-.59.59-.59 1.54 0 2.12l12.02 12.02c.59.59 1.54.59 2.12 0l6.36-6.36c.59-.59.59-1.54 0-2.12L10.23 1.75zm4.6 19.44L2.81 9.17l6.36-6.36 12.02 12.02-6.36 6.36zm-7.31.29C4.25 19.94 1.91 16.76 1.55 13H.05C.56 19.16 5.71 24 12 24l.66-.03-3.81-3.81-1.33 1.32z"/>
-      </svg>
-    </div>
-    <h2>请旋转设备</h2>
-    <p>为了获得最佳体验，请将设备横向放置</p>
-  </div>
 
   <main class="page">
     <header class="topbar">
@@ -1148,11 +967,14 @@
         <p class="subtitle">花子的涩涩日记</p>
       </div>
       <p class="hint">Scroll → Explore</p>
+      <span class="mobile-only mobile-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M12 12C3 9 7 1 12 7c5-6 9 2 0 5Zm0 0c0-9 9-8 6-1 7 3 1 9-6 1Zm0 0c8 3 4 11 0 5-5 6-9-2 0-5Zm0 0c0 8-9 7-6 0-7-3-1-9 6 0Z"/></svg></span>
     </header>
 
-    <section class="timeline-viewport" id="timelineViewport">
+    <div class="mobile-only mobile-section-heading"><strong>日记时间线</strong><span id="mobilePostCount"></span></div>
+    <section class="timeline-viewport" id="timelineViewport" aria-label="日记时间线">
       <div class="timeline-track" id="timelineTrack"></div>
     </section>
+    <p class="mobile-only mobile-endnote">· 把日子，一篇篇收好 ·</p>
   </main>
 
   <!-- 底部时间轴导航 + 独立跳转胶囊 -->
@@ -1194,8 +1016,6 @@
   </div>
 
   <script src="projects.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js"></script>
   <script src="simple-liquid-bg.js"></script>
   <script src="article-navigation.js"></script>
   <script src="article-music.js"></script>
@@ -1208,20 +1028,23 @@
     const navCountEl = document.getElementById("timelineNavCount");
     const navEl = document.getElementById("timelineNav");
 
+    document.getElementById("mobilePostCount").textContent = `共 ${PROJECTS.length} 篇`;
+
     // 一次显示的节点数（窗口大小）
     const NAV_WINDOW = 5;
 
     PROJECTS.forEach((p, i) => {
       const thumbInner = p.image
-        ? `<img src="${p.image}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;">`
+        ? `<img src="${p.image}" alt="${p.title}" loading="${window.HanakoMobile.media.matches && i > 0 ? "lazy" : "eager"}" decoding="async" style="width:100%;height:100%;object-fit:cover;">`
         : `<div class="noise"></div>`;
       track.insertAdjacentHTML("beforeend", `
-        <article class="project-card" data-depth="${p.depth}" data-index="${i}">
+        <article class="project-card" data-depth="${p.depth}" data-index="${i}" role="button" tabindex="0" aria-labelledby="postTitle${i}">
           <div class="project-thumb">${thumbInner}</div>
           <div class="project-meta">
             <p class="project-year">${p.year} · ${p.tag}</p>
-            <h2 class="project-title">${p.title}</h2>
+            <h2 class="project-title" id="postTitle${i}">${p.title}</h2>
             <p class="project-desc">${p.desc}</p>
+            <div class="mobile-only mobile-card-footer" aria-hidden="true"><span class="mobile-card-number">DIARY / ${String(i + 1).padStart(2, "0")}</span><span>阅读日记<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></span></div>
           </div>
         </article>
       `);
@@ -1239,12 +1062,23 @@
     const navNodes = Array.from(navNodesEl.querySelectorAll(".timeline-nav-node"));
     navCountEl.innerHTML = `<b><span class="num-cell">1</span></b>`;
 
+    function mountDesktopTimeline() {
+      const events = new AbortController();
+      const disposeCallbacks = [];
+      let parallaxFrame = 0;
+      let imageViewerTimer = 0;
+      const listen = (target, type, handler, options = {}) =>
+        target.addEventListener(type, handler, { ...options, signal: events.signal });
+      gsap.registerPlugin(ScrollTrigger);
+      navCountEl.innerHTML = '<b><span class="num-cell">1</span></b>';
+
     // ── 卡片 hover 水面扭曲（SVG feTurbulence + feDisplacementMap） ──
     // hover 触发 CSS filter: url(#water-ripple) 接管渲染
     // JS 做两件事：
     //   ① GSAP 缓动 feDisplacementMap.scale 0 ↔ TARGET，扭曲幅度由轻到重渐进入场
     //   ② 持续摆动 baseFrequency，水面在流动而不是静止扭曲
     (function setupWaterRipple() {
+      if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
       const turb = document.getElementById("ripple-turb");
       const disp = document.getElementById("ripple-disp");
       if (!turb || !disp) return;
@@ -1256,6 +1090,7 @@
       let hoverCount = 0;
       let rafId = null;
       let t = 0;
+      disposeCallbacks.push(() => { cancelAnimationFrame(rafId); gsap.killTweensOf(disp); disp.setAttribute("scale", "0"); });
 
       function flowTick() {
         if (hoverCount === 0) {
@@ -1271,7 +1106,7 @@
       }
 
       document.querySelectorAll(".project-card").forEach(cardEl => {
-        cardEl.addEventListener("mouseenter", () => {
+        listen(cardEl, "mouseenter", () => {
           hoverCount++;
           if (!rafId) rafId = requestAnimationFrame(flowTick);
           // 扭曲幅度缓动入场：从当前值（通常 0，或上次未完成的中间值）→ TARGET
@@ -1283,7 +1118,7 @@
             overwrite: true
           });
         });
-        cardEl.addEventListener("mouseleave", () => {
+        listen(cardEl, "mouseleave", () => {
           hoverCount = Math.max(0, hoverCount - 1);
           // 扭曲幅度缓动退场：→ 0
           // power2.out：开始快、收尾慢 → 自然消退
@@ -1335,6 +1170,7 @@
 
     // ── 图片查看器功能 ──
     function openImageViewer(imgSrc) {
+      clearTimeout(imageViewerTimer);
       imageViewerImg.src = imgSrc;
       imageViewer.classList.add("active");
       document.body.style.overflow = "hidden";
@@ -1343,13 +1179,14 @@
     function closeImageViewer() {
       imageViewer.classList.remove("active");
       document.body.style.overflow = activeCard ? "hidden" : "";
-      setTimeout(() => {
+      clearTimeout(imageViewerTimer);
+      imageViewerTimer = setTimeout(() => {
         imageViewerImg.src = "";
       }, 400);
     }
 
-    imageViewerBackdrop.addEventListener("click", closeImageViewer);
-    imageViewerClose.addEventListener("click", closeImageViewer);
+    listen(imageViewerBackdrop, "click", closeImageViewer);
+    listen(imageViewerClose, "click", closeImageViewer);
 
     // 初始化卡片轻微错位堆叠，建立层级感
     function layoutCards() {
@@ -1364,7 +1201,7 @@
 
     // ── 底部时间轴导航：分页窗口 + 进度联动 + 节点点击跳转 ──
     let currentNavIndex = 0;
-    let navWindowStart = 0; // 当前窗口起始节点 index
+    let navWindowStart = -1; // 当前窗口起始节点 index
 
     // 窗口跟随当前激活节点：只显示窗口内的 W 个节点，其余隐藏
     function updateNavWindow(activeIdx) {
@@ -1446,7 +1283,7 @@
 
       // 旧 cell 快速缩小消失，结束后从 DOM 移除
       lastCell.classList.add("popping-out");
-      lastCell.addEventListener(
+      listen(lastCell,
         "animationend",
         () => { lastCell.remove(); },
         { once: true }
@@ -1459,7 +1296,7 @@
       b.appendChild(newCell);
 
       // 动画结束后清理 class，避免重播
-      newCell.addEventListener(
+      listen(newCell,
         "animationend",
         () => { newCell.classList.remove("popping-in"); },
         { once: true }
@@ -1483,7 +1320,7 @@
 
     // 节点点击事件
     navNodes.forEach(node => {
-      node.addEventListener("click", e => {
+      listen(node, "click", e => {
         e.stopPropagation();
         if (activeCard) closeCard();
         jumpToIndex(parseInt(node.dataset.index, 10));
@@ -1532,16 +1369,16 @@
       }
     }
 
-    navCountEl.addEventListener("click", openJumpModal);
-    jumpModalBackdrop.addEventListener("click", closeJumpModal);
+    listen(navCountEl, "click", openJumpModal);
+    listen(jumpModalBackdrop, "click", closeJumpModal);
     // 输入框内的按键直接处理，阻止冒泡到全局 keydown
-    jumpModalInput.addEventListener("keydown", e => {
+    listen(jumpModalInput, "keydown", e => {
       e.stopPropagation();
       if (e.key === "Enter") { e.preventDefault(); commitJumpModal(); }
       else if (e.key === "Escape") { e.preventDefault(); closeJumpModal(); }
     });
     // 阻止 panel 上的点击穿透到 backdrop
-    document.querySelector(".jump-modal-panel").addEventListener("click", e => e.stopPropagation());
+    listen(document.querySelector(".jump-modal-panel"), "click", e => e.stopPropagation());
 
     // 通过 ScrollTrigger 将纵向滚动映射为横向时间线移动
     function buildScroll() {
@@ -1634,7 +1471,7 @@
         });
       }
 
-      requestAnimationFrame(renderParallax);
+      parallaxFrame = requestAnimationFrame(renderParallax);
     }
 
     function closeCard() {
@@ -1960,6 +1797,9 @@
         document.body.appendChild(focusCardEl);
       } else {
         focusCardEl = card.cloneNode(true);
+        focusCardEl.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
+        focusCardEl.removeAttribute('aria-labelledby');
+        focusCardEl.setAttribute('aria-label', proj.title);
         focusCardEl.classList.remove("is-active");
         focusCardEl.classList.add("focus-card");
         document.body.appendChild(focusCardEl);
@@ -1970,7 +1810,7 @@
         host: focusCardEl.querySelector(".project-thumb") || focusCardEl,
         post: proj
       });
-      focusCardEl.addEventListener("click", e => {
+      listen(focusCardEl, "click", e => {
         e.stopPropagation();
         closeCard();
       });
@@ -2124,10 +1964,10 @@
           onComplete: articleNavigation.refresh
         });
 
-        panel.addEventListener("click", e => e.stopPropagation());
+        listen(panel, "click", e => e.stopPropagation());
 
         // 为面板中的图片添加点击放大功能
-        panel.addEventListener("click", e => {
+        listen(panel, "click", e => {
           if (e.target.tagName === "IMG" && e.target.closest(".content-scroll-wrapper")) {
             e.stopPropagation();
             openImageViewer(e.target.src);
@@ -2136,7 +1976,7 @@
 
       } else {
         // 无 content 时，焦点卡片内部可滚动
-        focusCardEl.addEventListener("wheel", e => {
+        listen(focusCardEl, "wheel", e => {
           const meta = focusCardEl.querySelector(".project-meta");
           if (meta) { e.preventDefault(); e.stopPropagation(); meta.scrollTop += e.deltaY; }
         }, { passive: false });
@@ -2144,17 +1984,26 @@
     }
 
     cards.forEach(card => {
-      card.addEventListener("click", e => {
+      listen(card, "keydown", event => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); focusCard(card); }
+      });
+      listen(card, "click", e => {
         e.stopPropagation();
         focusCard(card);
       });
     });
 
-    overlay.addEventListener("click", closeCard);
+    listen(overlay, "click", closeCard);
 
-    window.addEventListener("pointermove", pointerMove, { passive: true });
-    window.addEventListener("resize", () => {
-      layoutCards();
+    listen(window, "pointermove", pointerMove, { passive: true });
+    let lastDesktopWidth = window.innerWidth;
+    listen(window, "resize", () => {
+      if (window.HanakoMobile.media.matches) return;
+      if (window.innerWidth !== lastDesktopWidth) {
+        lastDesktopWidth = window.innerWidth;
+        layoutCards();
+        buildScroll();
+      }
       ScrollTrigger.refresh();
       // 宽度变了，nav 填充也要重算
       if (scrollTween && scrollTween.scrollTrigger) {
@@ -2168,8 +2017,9 @@
 
       let touchStartX = 0, touchStartY = 0, locked = null;
       let velocity = 0, rafTick = null, lastMoveTime = 0;
+      disposeCallbacks.push(() => cancelAnimationFrame(rafTick));
 
-      viewport.addEventListener("touchstart", e => {
+      listen(viewport, "touchstart", e => {
         if (activeCard) return;
         const t = e.touches[0];
         touchStartX = t.clientX;
@@ -2179,7 +2029,7 @@
         if (rafTick) { cancelAnimationFrame(rafTick); rafTick = null; }
       }, { passive: true });
 
-      viewport.addEventListener("touchmove", e => {
+      listen(viewport, "touchmove", e => {
         if (activeCard) return;
         const t = e.touches[0];
         const dx = t.clientX - touchStartX;
@@ -2203,7 +2053,7 @@
       }, { passive: false });
 
       // 惯性滑动
-      viewport.addEventListener("touchend", () => {
+      listen(viewport, "touchend", () => {
         if (locked !== "h") return;
         let v = velocity * 12;
         function inertia() {
@@ -2222,7 +2072,7 @@
     renderParallax();
 
     // 键盘导航：Esc 关闭，←/→ 上一张/下一张，Home/End 首尾
-    window.addEventListener("keydown", e => {
+    listen(window, "keydown", e => {
       if (e.key === "Escape") {
         // Esc 关闭优先级：跳转弹窗 > 图片查看器 > 卡片详情
         if (isJumpModalOpen()) {
@@ -2254,6 +2104,77 @@
         jumpToIndex(nextIdx);
       }
     });
+
+      // Release desktop effects when the viewport switches to the touch layout.
+      window.focusCard = focusCard;
+      window.closeCard = closeCard;
+      return () => {
+        events.abort();
+        clearTimeout(imageViewerTimer);
+        cancelAnimationFrame(parallaxFrame);
+        disposeCallbacks.forEach(dispose => dispose());
+        activeArticleNavigation?.destroy();
+        activeArticleMusic?.destroy();
+        scrollTween?.scrollTrigger?.kill();
+        scrollTween?.kill();
+        const transient = Array.from(document.querySelectorAll('.focus-card, .content-panel, .sakura-petal, .sakura-burst'));
+        transient.forEach(node => {
+          node.querySelectorAll('video, audio').forEach(media => media.pause());
+          gsap.killTweensOf([node, ...node.querySelectorAll('*')]);
+          node.remove();
+        });
+        gsap.killTweensOf([track, ...cards, overlay, focusAura]);
+        gsap.set([track, ...cards, overlay, focusAura], { clearProps: 'all' });
+        cards.forEach(card => card.classList.remove('is-active'));
+        imageViewer.classList.remove('active');
+        imageViewerImg.removeAttribute('src');
+        jumpModal.classList.remove('is-open');
+        jumpModal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        delete window.focusCard;
+        delete window.closeCard;
+      };
+    }
+
+    let animationLibraries;
+    function loadDesktopAnimation() {
+      if (animationLibraries) return animationLibraries;
+      const loadScript = src => new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Unable to load desktop animation'));
+        document.head.appendChild(script);
+      });
+      animationLibraries = loadScript('https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js')
+        .then(() => loadScript('https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/ScrollTrigger.min.js'));
+      return animationLibraries;
+    }
+
+    let disposeLayout = null;
+    let layoutGeneration = 0;
+    function mountCurrentLayout() {
+      const generation = ++layoutGeneration;
+      disposeLayout?.();
+      disposeLayout = null;
+      const mobile = window.HanakoMobile.media.matches;
+      document.documentElement.classList.toggle('is-mobile', mobile);
+      if (mobile) {
+        disposeLayout = window.HanakoMobile.mount(PROJECTS);
+        return;
+      }
+      loadDesktopAnimation().then(() => {
+        if (generation !== layoutGeneration) return;
+        disposeLayout = mountDesktopTimeline();
+      }).catch(error => {
+        if (generation !== layoutGeneration) return;
+        console.warn('Desktop animation unavailable; using the reading layout.', error);
+        document.documentElement.classList.add('is-mobile');
+        disposeLayout = window.HanakoMobile.mount(PROJECTS);
+      });
+    }
+    window.HanakoMobile.media.addEventListener('change', mountCurrentLayout);
+    mountCurrentLayout();
   </script>
 </body>
 </html>
