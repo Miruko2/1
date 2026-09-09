@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#fff8fb" />
   <title>HANAKO</title>
   <style>
     :root {
@@ -617,14 +618,6 @@
       text-transform: uppercase;
     }
 
-    @media (max-width: 640px) {
-      .jump-modal-panel {
-        padding: 1.4rem 1.6rem 1.2rem;
-        min-width: 240px;
-      }
-      .jump-modal-input { font-size: 1.3rem; }
-    }
-
     /* ── 樱花花瓣（关闭帖子时爆散用） ── */
     .sakura-petal {
       position: fixed;
@@ -679,18 +672,6 @@
       z-index: 1099;
       transform: translate(-50%, -50%) scale(0.3);
       will-change: transform, opacity;
-    }
-
-    @media (max-width: 640px) {
-      .timeline-bottom {
-        bottom: 0.9rem;
-        gap: 0.5rem;
-      }
-      .timeline-nav { padding: 0.55rem 1rem; }
-      .timeline-nav-jump { padding: 0.55rem 0.85rem; }
-      .timeline-nav-track { width: clamp(180px, 60vw, 320px); }
-      .timeline-nav-node::after { font-size: 0.66rem; }
-      .timeline-nav-count { font-size: 0.7rem; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -942,8 +923,8 @@
   <link rel="stylesheet" href="article-navigation.css" />
   <link rel="stylesheet" href="article-music.css" />
   <!-- Refresh these content hashes whenever the mobile assets change. -->
-  <link rel="stylesheet" href="mobile-layout.css?v=c1eec0a81525ee20" />
-  <script src="mobile-layout.js?v=0e65878c379e2b43"></script>
+  <link rel="stylesheet" href="mobile-layout.css?v=9701133c0dc28f20" />
+  <script src="mobile-layout.js?v=20efccff450f8f08"></script>
 </head>
 <body>
   <iframe id="liquid-bg-iframe" data-src="https://bg.hanakos.cc/" title="水波背景" aria-hidden="true" tabindex="-1" style="position: fixed; inset: 0; width: 100%; height: 100%; border: none; z-index: 1;"></iframe>
@@ -1036,7 +1017,7 @@
 
     PROJECTS.forEach((p, i) => {
       const thumbInner = p.image
-        ? `<img src="${p.image}" alt="${p.title}" loading="${window.HanakoMobile.media.matches && i > 0 ? "lazy" : "eager"}" decoding="async" style="width:100%;height:100%;object-fit:cover;">`
+        ? `<img src="${p.image}" alt="${p.title}" loading="${(window.HanakoMobile?.media.matches ? i > 0 : i >= 3) ? "lazy" : "eager"}" decoding="async" style="width:100%;height:100%;object-fit:cover;">`
         : `<div class="noise"></div>`;
       track.insertAdjacentHTML("beforeend", `
         <article class="project-card" data-depth="${p.depth}" data-index="${i}" role="button" tabindex="0" aria-labelledby="postTitle${i}">
@@ -1748,20 +1729,18 @@
 
       const proj = PROJECTS[parseInt(card.dataset.index)];
       const hasTwoPanel = !!(proj && proj.content);
-      const isMobile = "ontouchstart" in window && window.innerWidth <= 860;
-      const gap = isMobile ? 12 : 28;
+      const gap = 28;
 
       // 放大打开的帖子尺寸
-      const scaleFactor = isMobile ? 1 : 1.35;
+      const scaleFactor = 1.35;
       let focusW = rect.width * scaleFactor;
       let focusH = rect.height * scaleFactor;
 
-      // 有 content 时左移，否则居中；移动端整体左移，保持左右卡片原本间距
-      const mobileLeftOffset = isMobile && hasTwoPanel ? window.innerWidth * 0.06 : 0;
+      // 有 content 时左移，否则居中
       // 有内容时，图片和面板紧挨着，没有间隙
       const panelGap = hasTwoPanel ? 0 : gap;
       const targetCenterX = hasTwoPanel
-        ? window.innerWidth * 0.5 - focusW * 0.5 - panelGap * 0.5 - mobileLeftOffset
+        ? window.innerWidth * 0.5 - focusW * 0.5 - panelGap * 0.5
         : window.innerWidth * 0.5;
       const offsetX = targetCenterX - cardCenterX;
       const offsetY = centerY - cardCenterY;
@@ -1807,7 +1786,7 @@
       }
 
       activeFocusCard = focusCardEl;
-      activeArticleMusic = HanakoMusic.createPlayer({
+      activeArticleMusic = window.HanakoMusic?.createPlayer({
         host: focusCardEl.querySelector(".project-thumb") || focusCardEl,
         post: proj
       });
@@ -1930,16 +1909,13 @@
           });
         }
 
-        // 右侧面板紧跟左侧图片，紧挨着，整体一起左移
-        const panelLeft = hasTwoPanel ? panelX : (window.innerWidth * 0.5 + panelGap * 0.5 - mobileLeftOffset);
-        const panelW = isMobile
-          ? Math.min(window.innerWidth - panelLeft - 8, focusW * 1.4)
-          : finalPanelWidth;
+        // 右侧面板紧跟左侧图片，紧挨着
+        const panelLeft = hasTwoPanel ? panelX : (window.innerWidth * 0.5 + panelGap * 0.5);
 
         gsap.set(panel, {
           left: panelLeft,
           top: centerY - focusH * 0.5,
-          width: panelW,
+          width: finalPanelWidth,
           height: focusH,
           scale: 0.82,
           opacity: 0,
@@ -1999,7 +1975,7 @@
     listen(window, "pointermove", pointerMove, { passive: true });
     let lastDesktopWidth = window.innerWidth;
     listen(window, "resize", () => {
-      if (window.HanakoMobile.media.matches) return;
+      if (window.HanakoMobile?.media.matches) return;
       if (window.innerWidth !== lastDesktopWidth) {
         lastDesktopWidth = window.innerWidth;
         layoutCards();
@@ -2158,7 +2134,7 @@
       const generation = ++layoutGeneration;
       disposeLayout?.();
       disposeLayout = null;
-      const mobile = window.HanakoMobile.media.matches;
+      const mobile = !!window.HanakoMobile?.media.matches;
       document.documentElement.classList.toggle('is-mobile', mobile);
       if (mobile) {
         disposeLayout = window.HanakoMobile.mount(PROJECTS);
@@ -2169,12 +2145,13 @@
         disposeLayout = mountDesktopTimeline();
       }).catch(error => {
         if (generation !== layoutGeneration) return;
+        if (!window.HanakoMobile) return;
         console.warn('Desktop animation unavailable; using the reading layout.', error);
         document.documentElement.classList.add('is-mobile');
         disposeLayout = window.HanakoMobile.mount(PROJECTS);
       });
     }
-    window.HanakoMobile.media.addEventListener('change', mountCurrentLayout);
+    window.HanakoMobile?.media.addEventListener('change', mountCurrentLayout);
     mountCurrentLayout();
   </script>
 </body>

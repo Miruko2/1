@@ -514,6 +514,9 @@
       }
     });
     listen(photo.querySelector("button"), "click", () => closeDialogAnimated(photo));
+    listen(photo, "click", event => {
+      if (event.target === photo || event.target.tagName === "IMG") closeDialogAnimated(photo);
+    });
     listen(photo, "cancel", event => { event.preventDefault(); closeDialogAnimated(photo); });
     listen(photo, "close", () => photo.querySelector("img").removeAttribute("src"));
     listen(document, "visibilitychange", () => {
