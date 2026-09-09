@@ -255,7 +255,7 @@
       }
       const wrapRect = readerScroll.getBoundingClientRect();
       const height = wrapRect.height;
-      const fade = Math.min(110, height * 0.25);
+      const fade = Math.min(64, height * 0.2);
       const scrolled = readerScroll.scrollTop > 5; // 滚动超过5px才启用顶部模糊
       blocks.forEach(el => {
         if (el.closest(".article-music")) return;
