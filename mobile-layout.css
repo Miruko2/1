@@ -465,24 +465,6 @@
 .mobile-reader-scroll { padding-top: calc(80px + env(safe-area-inset-top, 0px)); scroll-padding-top: calc(90px + env(safe-area-inset-top, 0px)); }
 .mobile-reader-cover { border-radius: 22px; box-shadow: 0 9px 24px rgba(136, 92, 116, .1), 0 0 0 1px rgba(255, 255, 255, .9); }
 .mobile-reader-cover > img { aspect-ratio: 3 / 2; max-height: 50svh; object-fit: cover; }
-/* 每个块级内容独立过渡，JS 按滚动位置动态写入 filter + opacity（与桌面端一致） */
-.mobile-reader-article p,
-.mobile-reader-article h1,
-.mobile-reader-article h2,
-.mobile-reader-article h3,
-.mobile-reader-article h4,
-.mobile-reader-article h5,
-.mobile-reader-article h6,
-.mobile-reader-article ul,
-.mobile-reader-article ol,
-.mobile-reader-article hr,
-.mobile-reader-article img,
-.mobile-reader-article video,
-.mobile-reader-article pre,
-.mobile-reader-article blockquote,
-.mobile-reader-article table {
-  transition: filter .35s ease-out, opacity .35s ease-out;
-}
 .mobile-reader-meta { color: #95758a; }
 .mobile-reader-title { font-weight: 650; letter-spacing: .01em; color: #463648; }
 .mobile-reader-back { border-radius: 23px 0 0 23px; transition: background .18s ease, transform .18s ease; }
