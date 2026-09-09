@@ -183,18 +183,16 @@
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   flex-shrink: 0;
-  gap: 12px;
+  gap: 0;
   min-height: 62px;
-  padding: calc(9px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) 9px max(12px, env(safe-area-inset-left, 0px));
-  border-bottom: 1px solid #f0e1e8;
+  padding: 0 4px;
   background: #fffafb;
 }
-.mobile-reader-back { display: flex; align-items: center; gap: 6px; min-height: 44px; border: 0; background: none; padding: 0 8px; font-size: 14px !important; }
-.mobile-reader-back svg { width: 19px; height: 19px; }
-.mobile-reader-position { font-size: 12px; letter-spacing: 0.08em; color: #9c838f; }
-.mobile-reader-progress { position: absolute; height: 2px; bottom: -1px; left: 0; right: 0; }
+.mobile-reader-back { display: grid; place-items: center; flex: 0 0 48px; align-self: stretch; min-height: 44px; border: 0; background: none; padding: 0; }
+.mobile-reader-back svg { width: 21px; height: 21px; }
+.mobile-reader-position { flex-shrink: 0; font-size: 10px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; color: #947689; }
+.mobile-reader-progress { position: absolute; height: 2px; bottom: 0; left: 25px; right: 25px; overflow: hidden; pointer-events: none; }
 .mobile-reader-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; touch-action: pan-y pinch-zoom; }
 .mobile-reader-article { max-width: 600px; margin: 0 auto; padding: 18px max(20px, env(safe-area-inset-right, 0px)) calc(36px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); }
 .mobile-reader-cover { position: relative; min-height: 80px; margin-bottom: 24px; border-radius: 16px; overflow: hidden; background: #f9e8f0; }
@@ -427,40 +425,47 @@
 .mobile-reader.is-closing { will-change: transform, opacity; }
 .mobile-reader-header {
   position: absolute;
-  inset: 0 0 auto;
+  inset: calc(10px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) auto max(12px, env(safe-area-inset-left, 0px));
   z-index: 5;
-  background: rgba(255, 249, 253, .84);
-  border-bottom-color: rgba(255, 255, 255, .8);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
-  backdrop-filter: blur(12px) saturate(125%);
-  -webkit-backdrop-filter: blur(12px) saturate(125%);
+  max-width: 560px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 25px;
+  background: linear-gradient(125deg, rgba(255, 255, 255, .72), rgba(255, 247, 252, .54) 55%, rgba(242, 228, 247, .46));
+  box-shadow: 0 5px 18px rgba(111, 73, 101, .07), inset 0 1px 1px #fff, inset 0 -1px 1px rgba(196, 148, 180, .16);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
   transition: box-shadow .2s ease;
 }
-.mobile-reader.is-scrolled .mobile-reader-header { box-shadow: 0 5px 20px rgba(122, 81, 108, .06), inset 0 -1px 0 rgba(213, 181, 202, .28); }
+.mobile-reader.is-scrolled .mobile-reader-header { box-shadow: 0 7px 24px rgba(111, 73, 101, .12), inset 0 1px 1px #fff, inset 0 -1px 1px rgba(196, 148, 180, .2); }
 .mobile-reader.is-opening .mobile-reader-header,
 .mobile-reader.is-closing .mobile-reader-header { backdrop-filter: none; -webkit-backdrop-filter: none; background: #fff9fd; }
-.mobile-reader-tools { display: flex; align-items: center; gap: 12px; }
-.mobile-outline-toggle {
-  display: inline-flex;
+.mobile-reader-nav {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  min-height: 44px;
-  padding: 0 11px;
-  border: 1px solid rgba(204, 159, 187, .28);
-  border-radius: 999px;
-  background: linear-gradient(145deg, #fffafd, #f7eaf3);
-  box-shadow: inset 0 1px 0 #fff;
-  font-size: 12px !important;
-  color: #865c79 !important;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  min-height: 60px;
+  padding: 8px 12px 8px 5px;
+  border: 0;
+  border-radius: 0 23px 23px 0;
+  background: none;
+  text-align: left;
+  transition: background .18s ease;
 }
-.mobile-outline-toggle svg { width: 17px; height: 17px; }
-.mobile-outline-toggle:active { background: #f2dfec; }
-.mobile-reader-scroll { padding-top: calc(62px + env(safe-area-inset-top, 0px)); scroll-padding-top: calc(82px + env(safe-area-inset-top, 0px)); }
+.mobile-reader-location { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.mobile-reader-hint { color: #927287; font-size: 10px; line-height: 1.3; letter-spacing: .06em; }
+.mobile-reader-chapter { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #60475c; font-size: 14px; font-weight: 550; line-height: 1.5; }
+.mobile-reader-nav > svg { flex: 0 0 18px; width: 18px; height: 18px; color: #99718d; transition: transform .18s var(--mobile-ease-out); }
+.mobile-reader-nav[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.mobile-reader-nav:active { background: rgba(255, 255, 255, .35); }
+.mobile-reader-scroll { padding-top: calc(80px + env(safe-area-inset-top, 0px)); scroll-padding-top: calc(90px + env(safe-area-inset-top, 0px)); }
 .mobile-reader-cover { border-radius: 22px; box-shadow: 0 9px 24px rgba(136, 92, 116, .1), 0 0 0 1px rgba(255, 255, 255, .9); }
 .mobile-reader-cover > img { aspect-ratio: 3 / 2; max-height: 50svh; object-fit: cover; }
 .mobile-reader-meta { color: #95758a; }
 .mobile-reader-title { font-weight: 650; letter-spacing: .01em; color: #463648; }
-.mobile-reader-back { border-radius: 14px; transition: background .18s ease, transform .18s ease; }
+.mobile-reader-back { border-radius: 23px 0 0 23px; transition: background .18s ease, transform .18s ease; }
 .mobile-reader-back:active { background: rgba(231, 208, 226, .32); transform: translateX(-2px); }
 
 .mobile-outline {
@@ -471,39 +476,41 @@
   max-height: 72vh;
   max-height: min(72dvh, 600px);
   margin: 0 auto;
-  padding: 18px 16px 14px;
+  padding: 22px 16px 16px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .95);
-  border-radius: 26px;
-  background: linear-gradient(145deg, #fffafd, #f8eef6);
-  box-shadow: 0 15px 48px rgba(74, 40, 68, .18), inset 0 1px 1px #fff;
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(255, 253, 255, .78), rgba(255, 246, 252, .62) 50%, rgba(241, 229, 248, .64));
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 18px 50px rgba(74, 40, 68, .18), 0 2px 8px rgba(87, 56, 82, .06), inset 0 1px 1px #fff, inset 0 -1px 1px rgba(202, 161, 191, .24);
 }
 .mobile-outline[open] { display: flex; flex-direction: column; }
-.mobile-outline header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 12px; padding: 0 3px 14px; }
+.mobile-outline header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 12px; padding: 0 8px 16px; margin-bottom: 8px; border-bottom: 1px solid rgba(177, 138, 165, .17); }
 .mobile-outline header > div { min-width: 0; }
-.mobile-outline h2 { color: #503b51; font-size: 20px; line-height: 1.5; }
+.mobile-outline h2 { color: #503b51; font-size: 21px; font-weight: 600; line-height: 1.5; letter-spacing: .03em; }
 .mobile-outline-caption { margin-top: 4px; color: #967b90; font-size: 11px; line-height: 1.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mobile-outline-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
+.mobile-outline-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px; scrollbar-width: thin; scrollbar-color: rgba(171, 132, 161, .3) transparent; }
 .mobile-outline-item {
   display: flex;
   align-items: baseline;
   gap: 10px;
   width: 100%;
-  min-height: 48px;
-  padding: 13px 10px 13px calc(10px + var(--heading-depth, 0) * 12px);
+  min-height: 52px;
+  padding: 14px 12px 14px calc(12px + var(--heading-depth, 0) * 12px);
   border: 1px solid transparent;
-  border-radius: 14px;
+  border-radius: 17px;
   background: none;
   text-align: left;
 }
 .mobile-outline-item + .mobile-outline-item { margin-top: 3px; }
-.mobile-outline-item:active { background: #f4e1ee; }
-.mobile-outline-item[aria-current="location"] { background: #f1deed; border-color: rgba(255, 255, 255, .9); }
+.mobile-outline-item:active { background: rgba(236, 210, 229, .5); }
+.mobile-outline-item[aria-current="location"] { background: linear-gradient(110deg, rgba(255, 255, 255, .7), rgba(241, 215, 234, .52)); border-color: rgba(255, 255, 255, .85); box-shadow: 0 3px 10px rgba(128, 86, 117, .04), inset 0 1px 0 rgba(255, 255, 255, .7); }
 .mobile-outline-number { flex: 0 0 18px; font-size: 10px; color: #9f7893; font-variant-numeric: tabular-nums; }
 .mobile-outline-text { flex: 1; min-width: 0; color: #654c62; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
 .mobile-outline-current { visibility: hidden; flex-shrink: 0; color: #a66790; font-size: 10px; }
 .mobile-outline-item[aria-current="location"] .mobile-outline-current { visibility: visible; }
-.mobile-outline::backdrop { background: rgba(60, 38, 57, .2); }
+.mobile-outline::backdrop { background: rgba(60, 38, 57, .14); }
 .mobile-outline[open]::backdrop { animation: mobile-veil-in .18s ease both; }
 .mobile-outline.is-closing::backdrop { animation: mobile-veil-out .16s ease both; }
 
@@ -545,7 +552,7 @@
 .mobile-photo .mobile-icon-button { background: rgba(255, 246, 251, .8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .is-mobile .project-card, .mobile-dock, .mobile-directory { background: #fff6fb; }
+  .is-mobile .project-card, .mobile-dock, .mobile-directory, .mobile-outline { background: #fff6fb; }
   .mobile-reader, .mobile-reader-header { background: #fffafb; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -555,5 +562,6 @@
   .mobile-reader::backdrop, .mobile-directory::backdrop, .mobile-outline::backdrop { animation: none !important; }
   .is-mobile .project-card, .is-mobile .project-card.is-reveal-pending, .is-mobile .project-card:active { opacity: 1; transform: none; transition: none; }
   .mobile-progress-fill, .mobile-icon-button, .mobile-directory-item,
-  .mobile-dock-current, .mobile-card-footer svg, .mobile-reader-header, .mobile-reader-back { transition: none; }
+  .mobile-dock-current, .mobile-card-footer svg, .mobile-reader-header, .mobile-reader-back,
+  .mobile-reader-nav, .mobile-reader-nav > svg { transition: none; }
 }

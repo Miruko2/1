@@ -8,7 +8,7 @@
   const icons = {
     back: '<path d="m14 6-6 6 6 6"/>',
     up: '<path d="m6 11 6-6 6 6M12 5v14"/>',
-    list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+    down: '<path d="m7 10 5 5 5-5"/>',
     close: '<path d="m6 6 12 12M18 6 6 18"/>'
   };
   const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]}</svg>`;
@@ -97,7 +97,7 @@
     let outlineButtons = [];
     let currentHeading = -1;
     let readerRange = 0;
-    let readerHeaderHeight = 62;
+    let readerHeaderBottom = 72;
     let headingJump = null;
 
     const dock = element("nav", "mobile-dock");
@@ -110,7 +110,14 @@
 
     const reader = element("dialog", "mobile-reader");
     reader.setAttribute("aria-labelledby", "mobileReaderTitle");
-    reader.innerHTML = `<header class="mobile-reader-header"><button type="button" class="mobile-reader-back">${icon("back")}返回日记</button><div class="mobile-reader-tools"><span class="mobile-reader-position"></span><button type="button" class="mobile-outline-toggle" aria-label="打开文章目录" aria-haspopup="dialog" aria-controls="mobileOutline" aria-expanded="false">${icon("list")}目录</button></div><div class="mobile-reader-progress" aria-hidden="true"><span class="mobile-progress-fill"></span></div></header><div class="mobile-reader-scroll" tabindex="0" aria-label="文章正文"><article class="mobile-reader-article"></article></div>`;
+    reader.innerHTML = `<header class="mobile-reader-header">
+      <button type="button" class="mobile-reader-back" aria-label="返回日记">${icon("back")}</button>
+      <button type="button" class="mobile-reader-nav" aria-label="打开文章目录" aria-describedby="mobileReaderLocation" aria-haspopup="dialog" aria-controls="mobileOutline" aria-expanded="false">
+        <span class="mobile-reader-location"><span class="mobile-reader-hint">轻触展开章节</span><span class="mobile-reader-chapter" id="mobileReaderLocation"></span></span>
+        <span class="mobile-reader-position" aria-hidden="true"></span>${icon("down")}
+      </button>
+      <div class="mobile-reader-progress" aria-hidden="true"><span class="mobile-progress-fill"></span></div>
+    </header><div class="mobile-reader-scroll" tabindex="0" aria-label="文章正文"><article class="mobile-reader-article"></article></div>`;
 
     const outline = element("dialog", "mobile-outline");
     outline.id = "mobileOutline";
@@ -130,7 +137,9 @@
     const article = reader.querySelector(".mobile-reader-article");
     const readerProgress = reader.querySelector(".mobile-progress-fill");
     const readerHeader = reader.querySelector(".mobile-reader-header");
-    const outlineToggle = reader.querySelector(".mobile-outline-toggle");
+    const outlineToggle = reader.querySelector(".mobile-reader-nav");
+    const readerChapter = reader.querySelector(".mobile-reader-chapter");
+    const readerPosition = reader.querySelector(".mobile-reader-position");
     const outlineList = outline.querySelector(".mobile-outline-list");
 
     // Cache heading positions after layout changes, never during each scroll frame.
@@ -139,7 +148,7 @@
       if (destroyed || !reader.open) return;
       const scrollTop = readerScroll.scrollTop;
       const viewportTop = readerScroll.getBoundingClientRect().top;
-      readerHeaderHeight = readerHeader.offsetHeight;
+      readerHeaderBottom = readerHeader.getBoundingClientRect().bottom - viewportTop;
       readerRange = Math.max(0, readerScroll.scrollHeight - readerScroll.clientHeight);
       headingOffsets = readerHeadings.map(heading => heading.getBoundingClientRect().top - viewportTop + scrollTop);
       // Late-loading images above a selected heading must not displace the destination.
@@ -222,7 +231,7 @@
       reader.classList.toggle("is-scrolled", top > 12);
       let nearest = 0;
       for (let index = 1; index < headingOffsets.length; index++) {
-        if (headingOffsets[index] > top + readerHeaderHeight + 24) break;
+        if (headingOffsets[index] > top + readerHeaderBottom + 24) break;
         nearest = index;
       }
       if (readerRange > 0 && top >= readerRange - 3) nearest = Math.max(0, readerHeadings.length - 1);
@@ -230,6 +239,9 @@
       outlineButtons[currentHeading]?.removeAttribute("aria-current");
       outlineButtons[nearest]?.setAttribute("aria-current", "location");
       currentHeading = nearest;
+      readerChapter.textContent = readerHeadings[nearest]?.textContent.trim() || "";
+      const sections = readerHeadings.length - 1;
+      readerPosition.textContent = nearest ? `${number(nearest)} / ${number(sections)}` : sections ? `${number(sections)} 小节` : "全文";
     }
 
     function stopMedia() {
@@ -312,7 +324,7 @@
     }
 
     function headingScrollTop(index) {
-      return index ? Math.max(0, Math.min(readerRange, headingOffsets[index] - readerHeaderHeight - 18)) : 0;
+      return index ? Math.max(0, Math.min(readerRange, headingOffsets[index] - readerHeaderBottom - 18)) : 0;
     }
 
     function openReader(index) {
@@ -359,7 +371,6 @@
       backButton.dataset.closeReader = "";
       ending.appendChild(backButton);
       article.appendChild(ending);
-      reader.querySelector(".mobile-reader-position").textContent = `${number(index + 1)} / ${number(projects.length)}`;
       lockPage();
       reader.classList.add("is-opening");
       reader.showModal();
