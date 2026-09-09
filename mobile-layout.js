@@ -229,6 +229,7 @@
       const top = readerScroll.scrollTop;
       readerProgress.style.transform = `scaleX(${readerRange > 0 ? Math.max(0, Math.min(1, top / readerRange)) : 1})`;
       reader.classList.toggle("is-scrolled", top > 12);
+      updateReaderBlur();
       let nearest = 0;
       for (let index = 1; index < headingOffsets.length; index++) {
         if (headingOffsets[index] > top + readerHeaderBottom + 24) break;
@@ -242,6 +243,32 @@
       readerChapter.textContent = readerHeadings[nearest]?.textContent.trim() || "";
       const sections = readerHeadings.length - 1;
       readerPosition.textContent = nearest ? `${number(nearest)} / ${number(sections)}` : sections ? `${number(sections)} 小节` : "全文";
+    }
+
+    // 与桌面端一致：阅读器内块级内容在上下边缘高斯模糊渐入/渐出
+    const READER_BLUR_SELECTOR = "p, h1, h2, h3, h4, h5, h6, ul, ol, hr, img, video, pre, blockquote, table";
+    function updateReaderBlur() {
+      const blocks = article.querySelectorAll(READER_BLUR_SELECTOR);
+      if (reducedMotion.matches) {
+        blocks.forEach(el => { el.style.filter = ""; el.style.opacity = ""; });
+        return;
+      }
+      const wrapRect = readerScroll.getBoundingClientRect();
+      const height = wrapRect.height;
+      const fade = Math.min(110, height * 0.25);
+      const scrolled = readerScroll.scrollTop > 5; // 滚动超过5px才启用顶部模糊
+      blocks.forEach(el => {
+        if (el.closest(".article-music")) return;
+        const rect = el.getBoundingClientRect();
+        const top = rect.top - wrapRect.top;
+        const bottom = rect.bottom - wrapRect.top;
+        let t = 1; // 0=完全模糊, 1=完全清晰
+        if (bottom < 0 || top > height) t = 0;
+        else if (top > height - fade) t = Math.max(0, (height - top) / fade);
+        else if (scrolled && bottom < fade) t = Math.max(0, bottom / fade);
+        el.style.filter = t < 0.99 ? `blur(${(25 * (1 - t)).toFixed(2)}px)` : "";
+        el.style.opacity = t < 0.99 ? (0.15 + 0.85 * t).toFixed(3) : "";
+      });
     }
 
     function stopMedia() {
@@ -528,6 +555,7 @@
       reveal?.disconnect();
       cards.forEach(card => { card.classList.remove("is-reveal-pending"); card.classList.add("is-visible"); });
       activeAnimations.forEach(animation => animation.finish());
+      if (reader.open) updateReaderBlur();
     });
     refreshProgress();
 
